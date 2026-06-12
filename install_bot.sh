@@ -1,4 +1,4 @@
-﻿#!/bin/bash
+#!/bin/bash
 # ===============================
 # Svaboda Admin Installer FIXED v3
 # С поддержкой WireGuard/AmneziaWG
@@ -8,10 +8,10 @@ set -e
 
 cd /root || exit 1
 
-INSTALL_DIR="/root/svaboda_admin"
-REPO_URL="git@github.com:voin57rus/svaboda_admin.git"
+INSTALL_DIR="/root/svaboda_super"
+REPO_URL="git@github.com:voin57rus/svaboda_super.git"
 VENV_DIR="$INSTALL_DIR/venv"
-SERVICE_NAME="svaboda_admin"
+SERVICE_NAME="svaboda_super"
 SERVICE_FILE="/etc/systemd/system/${SERVICE_NAME}.service"
 
 RED='\033[0;31m'
@@ -445,3 +445,4 @@ if [ -n "$1" ]; then
 fi
 
 show_menu
+
