@@ -340,22 +340,28 @@ do_install() {
     # 2. WireGuard
     check_wireguard
 
-    # 3. Клонирование
-    print_header "Клонирование репозитория"
+    # 3. Клонирование / Обновление репозитория
 
-    systemctl stop "$SERVICE_NAME" 2>/dev/null || true
+systemctl stop "$SERVICE_NAME" 2>/dev/null || true
 
-    if [ -d "$INSTALL_DIR/.git" ]; then
-        print_info "Репозиторий существует, обновляю..."
-        cd "$INSTALL_DIR"
-        git pull origin main 2>&1 || git pull origin master 2>&1
-        print_ok "Обновлено"
-    else
-        print_info "Клонирую..."
-        rm -rf "$INSTALL_DIR"
-        git clone "$REPO_URL" "$INSTALL_DIR" 2>&1
-        print_ok "Клонировано в $INSTALL_DIR"
-    fi
+if [ -d "$INSTALL_DIR/.git" ]; then
+    print_info "Репозиторий существует, обновляю..."
+
+    cd "$INSTALL_DIR"
+
+    git fetch origin
+    git reset --hard origin/main
+    git clean -fd
+
+    print_ok "Обновлено"
+else
+    print_info "Клонирую..."
+
+    rm -rf "$INSTALL_DIR"
+    git clone "$REPO_URL" "$INSTALL_DIR" 2>&1
+
+    print_ok "Клонировано в $INSTALL_DIR"
+fi
     echo ""
 
     # 4. Проверка WG файлов
