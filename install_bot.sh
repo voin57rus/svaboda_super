@@ -192,17 +192,36 @@ setup_venv() {
 
     # Проверка модулей
     print_info "Проверка модулей..."
+
+    MODULES=(
+        "aiogram:aiogram"
+        "aiohttp:aiohttp"
+        "qrcode:qrcode"
+        "Pillow:PIL"
+        "asyncssh:asyncssh"
+        "paramiko:paramiko"
+    )
+
     ERRORS=0
-    for MODULE in aiogram aiohttp qrcode pillow asyncssh paramiko; do
-        if python3 -c "import $MODULE" 2>/dev/null; then
-            print_ok "$MODULE"
+
+    for ITEM in "${MODULES[@]}"; do
+        NAME="${ITEM%%:*}"
+        IMPORT="${ITEM##*:}"
+
+        if python3 -c "import $IMPORT" 2>/dev/null; then
+            print_ok "$NAME"
         else
-            print_err "$MODULE — НЕ УСТАНОВЛЕН!"
+            print_err "$NAME — НЕ УСТАНОВЛЕН!"
             ERRORS=$((ERRORS + 1))
         fi
     done
 
-    [ $ERRORS -gt 0 ] && print_err "Есть недостающие модули!" || true
+    if [ $ERRORS -gt 0 ]; then
+        print_err "Есть недостающие модули!"
+    else
+        print_ok "Все модули установлены"
+    fi
+
     echo ""
 }
 
