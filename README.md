@@ -16,8 +16,8 @@ LOG_LEVEL=INFO
 
 создать ключ ssh
 cd /root
-rm -rf svaboda_super
 git clone https://github.com/voin57rus/svaboda_super.git
 cd svaboda_super
-bash install_bot.sh
+chmod +x *.sh
+bash installer.sh
 
