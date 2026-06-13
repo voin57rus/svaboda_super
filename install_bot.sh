@@ -140,20 +140,16 @@ ask_config() {
 write_config() {
     if [ "$NEED_WRITE_CONFIG" != "1" ]; then return; fi
 
-    if [ ! -f "$INSTALL_DIR/config.py.example" ]; then
-        print_warn "config.py.example не найден, пропускаю"
-        return
-    fi
+    ENV_FILE="$INSTALL_DIR/.env"
 
-    cp "$INSTALL_DIR/config.py.example" "$INSTALL_DIR/config.py"
+    cat > "$ENV_FILE" <<EOF
+BOT_TOKEN=$BOT_TOKEN
+ADMIN_IDS=$ADMIN_ID
+DATABASE_PATH=bot.db
+LOG_LEVEL=INFO
+EOF
 
-    BOT_TOKEN_ESC=$(escape_sed "$BOT_TOKEN")
-    ADMIN_ID_ESC=$(escape_sed "$ADMIN_ID")
-
-    sed -i "s|ВАШ_ТОКЕН_БОТА|$BOT_TOKEN_ESC|g" "$INSTALL_DIR/config.py"
-    sed -i "s|123456789|$ADMIN_ID_ESC|g" "$INSTALL_DIR/config.py"
-
-    print_ok "config.py настроен"
+    print_ok ".env создан автоматически"
 }
 
 # ========================================
