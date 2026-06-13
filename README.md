@@ -19,5 +19,5 @@ cd /root
 git clone https://github.com/voin57rus/svaboda_super.git
 cd svaboda_super
 chmod +x *.sh
-bash installer.sh
+bash install_bot.sh
 
