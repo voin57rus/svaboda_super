@@ -1,13 +1,34 @@
 import os
 
-BOT_TOKEN = os.getenv("BOT_TOKEN", "")
-ADMIN_IDS = [int(x) for x in os.getenv("ADMIN_IDS", "0").split(",") if x]
-DATABASE_PATH = os.getenv("DATABASE_PATH", "bot.db")
-LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
+# Telegram Bot API Token
+# Получите у @BotFather
+BOT_TOKEN = "ВАШ_ТОКЕН_БОТА"
 
-GITHUB_REPO_URL = os.getenv("GITHUB_REPO_URL", "")
+# Список Telegram ID администраторов бота
+ADMIN_IDS = [
+    12345678,  # Замените на ваш реальный ID
+]
 
+
+
+################# Ниже необязательные настройки ################# 
+
+# Ссылка на GitHub репозиторий для автообновления
+# Формат: https://github.com/username/repo.git или git@github.com:username/repo.git
+GITHUB_REPO_URL = "https://github.com/plushkinv/YadrenoVPN.git"  # Укажите URL вашего репозитория
+
+# Client Configuration Defaults
+DEFAULT_LIMIT_IP = 1  # Ограничение кол-ва одновременных подключений (1 ключ = 1 устройство)
+DEFAULT_TOTAL_GB = 1024 * 1024 * 1024 * 1024  # 1 TB в байтах (лимит трафика на ключ)
+
+# Rate Limiting Configuration
+RATE_LIMITS = {
+    "commands_per_minute": 30,              # Максимум команд для обычных пользователей
+    "critical_operations_per_minute": 5,    # Лимит для критичных операций (платежи, создание ключей)
+}
+
+# Retry Configuration for API calls
 RETRY_CONFIG = {
-    "max_attempts": int(os.getenv("RETRY_MAX_ATTEMPTS", "3")),
-    "delays": [int(x) for x in os.getenv("RETRY_DELAYS", "1,3,9").split(",")],
+    "max_attempts": 3,      # Максимальное количество попыток
+    "delays": [1, 3, 9],    # Задержки между попытками в секундах (экспоненциальная)
 }
