@@ -14,7 +14,7 @@ LOG_LEVEL=INFO
 
 установка бота на сервер если в привате
 
-создать ключ shh
+создать ключ ssh
 cd /root
 rm -rf svaboda_super
 git clone https://github.com/voin57rus/svaboda_super.git
