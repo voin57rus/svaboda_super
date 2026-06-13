@@ -108,12 +108,12 @@ async def finalize_payment_ui(message: Message, state: FSMContext, text: str, or
 
 async def _finalize_wg_payment(message, state, order, key_id, telegram_id, protocol):
     """
-    Финализация оплаты WireGuard.
-    Создаёт пир на сервере, генерирует конфиг и отправляет пользователю.
+    Финализация оплаты WireGuard / AmneziaWG.
+    Генерирует конфиг и отправляет пользователю.
     """
     from database.requests import get_vpn_key_by_id
     from bot.utils.key_sender import send_wg_key
-    from bot.utils.key_generator import generate_wg_config_text
+    from bot.utils.key_generator import generate_wg_config_text, generate_amnezia_wg_config_text
     from bot.services.panels.wireguard_ssh import get_server_public_key
     from bot.keyboards.user import key_manage_kb
 
@@ -127,14 +127,24 @@ async def _finalize_wg_payment(message, state, order, key_id, telegram_id, proto
         # Получаем публичный ключ сервера
         server_pubkey = await get_server_public_key()
 
-        # Генерируем конфиг (обычный WireGuard)
-        wg_config = generate_wg_config_text(
-            client_private_key=key_data['private_key'],
-            client_ip=key_data['allowed_ip'],
-            server_public_key=server_pubkey,
-            preshared_key=key_data['preshared_key'],
-            endpoint=key_data.get('endpoint', '87.120.165.232:39623'),
-        )
+        # Генерируем конфиг в зависимости от протокола
+        is_amnezia = protocol == "amnezia"
+        if is_amnezia:
+            wg_config = generate_amnezia_wg_config_text(
+                client_private_key=key_data['private_key'],
+                client_ip=key_data['allowed_ip'],
+                server_public_key=server_pubkey,
+                preshared_key=key_data['preshared_key'],
+                endpoint=key_data.get('endpoint', '87.120.165.232:32672'),
+            )
+        else:
+            wg_config = generate_wg_config_text(
+                client_private_key=key_data['private_key'],
+                client_ip=key_data['allowed_ip'],
+                server_public_key=server_pubkey,
+                preshared_key=key_data['preshared_key'],
+                endpoint=key_data.get('endpoint', '87.120.165.232:32672'),
+            )
 
         # Управляющая клавиатура
         markup = key_manage_kb(
