@@ -773,7 +773,7 @@ def create_wg_key(
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
             user_id, tariff_id, protocol, private_key, public_key,
-            preshared_key, allowed_ip, "87.120.165.232:39623",
+            preshared_key, allowed_ip, "87.120.165.232:32672",
             now.isoformat(), expires.isoformat()
         ))
         conn.commit()
