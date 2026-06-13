@@ -349,6 +349,11 @@ if [ -d "$INSTALL_DIR/.git" ]; then
 
     cd "$INSTALL_DIR"
 
+    # 🔥 ДОБАВЛЕННАЯ ПРОВЕРКА
+    if [[ -n "$(git status --porcelain)" ]]; then
+        print_warn "Локальные изменения найдены — сбрасываю..."
+    fi
+
     git fetch origin
     git reset --hard origin/main
     git clean -fd
