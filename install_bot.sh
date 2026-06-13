@@ -140,18 +140,16 @@ ask_config() {
 write_config() {
     ENV_FILE="$INSTALL_DIR/.env"
 
-    print_info "Создаю .env файл..."
-
     cat > "$ENV_FILE" <<EOF
-BOT_TOKEN=$BOT_TOKEN
-ADMIN_IDS=$ADMIN_ID
+BOT_TOKEN=${BOT_TOKEN}
+ADMIN_IDS=${ADMIN_ID}
 DATABASE_PATH=bot.db
 LOG_LEVEL=INFO
 EOF
 
     chmod 600 "$ENV_FILE"
 
-    print_ok ".env создан: $ENV_FILE"
+    print_ok ".env создан автоматически"
 }
 
 # ========================================
