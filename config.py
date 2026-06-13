@@ -10,6 +10,7 @@ ADMIN_IDS = [int(x.strip()) for x in os.getenv("ADMIN_IDS", "").split(",") if x.
 DATABASE_PATH = os.getenv("DATABASE_PATH", "bot.db")
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 
+GITHUB_REPO_URL = os.getenv("GITHUB_REPO_URL", "")
 
 RETRY_CONFIG = {
     "max_attempts": 3,
