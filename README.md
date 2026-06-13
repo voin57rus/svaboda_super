@@ -1,1 +1,12 @@
 # svaboda_super
+установка .env:
+
+cd /root/svaboda_super
+ls -la
+nano /root/svaboda_super/.env
+
+
+BOT_TOKEN=НОВЫЙ_ТОКЕН_ОТ_BOTFATHER
+ADMIN_IDS=1234567890
+DATABASE_PATH=названия вашей базы данных
+LOG_LEVEL=INFO
