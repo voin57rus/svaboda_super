@@ -9,3 +9,9 @@ BOT_TOKEN = os.getenv("BOT_TOKEN", "")
 ADMIN_IDS = [int(x.strip()) for x in os.getenv("ADMIN_IDS", "").split(",") if x.strip()]
 DATABASE_PATH = os.getenv("DATABASE_PATH", "bot.db")
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
+
+
+RETRY_CONFIG = {
+    "max_attempts": 3,
+    "delays": [1, 3, 9],
+}
