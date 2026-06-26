@@ -236,18 +236,19 @@ def get_admin_tariff() -> Optional[Dict[str, Any]]:
 
 def delete_tariffs_by_protocol(protocol: str) -> int:
     """
-    Удаляет все тарифы для указанного протокола.
+    Скрывает все тарифы для указанного протокола (is_active = 0).
+    Не удаляет физически чтобы не нарушить связи с ключами/заказами.
     
     Args:
         protocol: Протокол ('vless', 'wireguard', 'amnezia', 'xray')
         
     Returns:
-        Количество удалённых тарифов
+        Количество скрытых тарифов
     """
     with get_db() as conn:
-        cursor = conn.execute("DELETE FROM tariffs WHERE protocol = ?", (protocol,))
+        cursor = conn.execute("UPDATE tariffs SET is_active = 0 WHERE protocol = ? AND is_active = 1", (protocol,))
         count = cursor.rowcount
-        logger.info(f"Удалено {count} тарифов для протокола {protocol}")
+        logger.info(f"Скрыто {count} тарифов для протокола {protocol}")
         return count
 
 
