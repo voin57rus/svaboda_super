@@ -19,32 +19,32 @@ __all__ = [
     'get_admin_tariff',
 ]
 
-def get_all_tariffs(include_hidden: bool = False) -> List[Dict[str, Any]]:
+def get_all_tariffs(include_hidden: bool = False, protocol: str = None) -> List[Dict[str, Any]]:
     """
     Получает список всех тарифов.
     
     Args:
         include_hidden: Включать скрытые тарифы (is_active = 0)
+        protocol: Фильтр по протоколу ('vless', 'wireguard', 'amnezia', 'xray')
         
     Returns:
         Список словарей с данными тарифов
     """
     with get_db() as conn:
-        if include_hidden:
-            cursor = conn.execute("""
-                SELECT id, name, duration_days, price_cents, price_stars, price_rub, 
-                       display_order, is_active, traffic_limit_gb, group_id, max_ips
-                FROM tariffs
-                ORDER BY display_order, id
-            """)
-        else:
-            cursor = conn.execute("""
-                SELECT id, name, duration_days, price_cents, price_stars, price_rub, 
-                       display_order, is_active, traffic_limit_gb, group_id, max_ips
-                FROM tariffs
-                WHERE is_active = 1
-                ORDER BY display_order, id
-            """)
+        query = """
+            SELECT id, name, duration_days, price_cents, price_stars, price_rub, 
+                   display_order, is_active, traffic_limit_gb, group_id, max_ips, protocol
+            FROM tariffs
+            WHERE 1=1
+        """
+        params = []
+        if not include_hidden:
+            query += " AND is_active = 1"
+        if protocol:
+            query += " AND protocol = ?"
+            params.append(protocol)
+        query += " ORDER BY display_order, id"
+        cursor = conn.execute(query, params)
         return [dict(row) for row in cursor.fetchall()]
 
 def get_tariff_by_id(tariff_id: int) -> Optional[Dict[str, Any]]:
@@ -60,7 +60,7 @@ def get_tariff_by_id(tariff_id: int) -> Optional[Dict[str, Any]]:
     with get_db() as conn:
         cursor = conn.execute("""
             SELECT id, name, duration_days, price_cents, price_stars, price_rub, 
-                   display_order, is_active, traffic_limit_gb, group_id, max_ips
+                   display_order, is_active, traffic_limit_gb, group_id, max_ips, protocol
             FROM tariffs
             WHERE id = ?
         """, (tariff_id,))
@@ -76,7 +76,8 @@ def add_tariff(
     display_order: int = 0,
     traffic_limit_gb: int = 0,
     group_id: int = 1,
-    max_ips: int = 1
+    max_ips: int = 1,
+    protocol: str = 'vless'
 ) -> int:
     """
     Добавляет новый тариф.
@@ -91,6 +92,7 @@ def add_tariff(
         traffic_limit_gb: Лимит трафика в ГБ (0 = безлимит)
         group_id: ID группы тарифов (по умолчанию 1 — «Основная»)
         max_ips: Лимит устройств (IP-адресов) (по умолчанию 1)
+        protocol: Протокол VPN ('vless', 'wireguard', 'amnezia', 'xray')
         
     Returns:
         ID созданного тарифа
@@ -98,11 +100,11 @@ def add_tariff(
     with get_db() as conn:
         cursor = conn.execute("""
             INSERT INTO tariffs (name, duration_days, price_cents, price_stars, price_rub, 
-                                display_order, is_active, traffic_limit_gb, group_id, max_ips)
-            VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?, ?)
-        """, (name, duration_days, price_cents, price_stars, price_rub, display_order, traffic_limit_gb, group_id, max_ips))
+                                display_order, is_active, traffic_limit_gb, group_id, max_ips, protocol)
+            VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?)
+        """, (name, duration_days, price_cents, price_stars, price_rub, display_order, traffic_limit_gb, group_id, max_ips, protocol))
         tariff_id = cursor.lastrowid
-        logger.info(f"Добавлен тариф: {name} (ID: {tariff_id}, трафик: {traffic_limit_gb} ГБ, группа: {group_id}, max_ips: {max_ips})")
+        logger.info(f"Добавлен тариф: {name} (ID: {tariff_id}, протокол: {protocol}, трафик: {traffic_limit_gb} ГБ)")
         return tariff_id
 
 def update_tariff(tariff_id: int, **fields) -> bool:
@@ -117,7 +119,7 @@ def update_tariff(tariff_id: int, **fields) -> bool:
         True если обновление успешно
     """
     allowed_fields = {'name', 'duration_days', 'price_cents', 'price_stars', 'price_rub',
-                      'display_order', 'is_active', 'group_id', 'traffic_limit_gb', 'max_ips'}
+                      'display_order', 'is_active', 'group_id', 'traffic_limit_gb', 'max_ips', 'protocol'}
     fields = {k: v for k, v in fields.items() if k in allowed_fields}
     
     if not fields:

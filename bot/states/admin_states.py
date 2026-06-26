@@ -77,6 +77,7 @@ class AdminStates(StatesGroup):
     tariff_view = State()            # Просмотр конкретного тарифа
     
     # ========== Добавление тарифа (пошаговый диалог) ==========
+    add_tariff_protocol = State()    # Шаг 0: Выбор протокола
     add_tariff_name = State()        # Шаг 1: Название
     add_tariff_price_cents = State() # Шаг 2: Цена в центах
     add_tariff_price_stars = State() # Шаг 3: Цена в звёздах

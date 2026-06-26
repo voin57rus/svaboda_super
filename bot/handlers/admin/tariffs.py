@@ -46,8 +46,22 @@ from bot.keyboards.admin import (
 logger = logging.getLogger(__name__)
 
 from bot.utils.text import safe_edit_or_send
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 router = Router()
+
+
+def add_tariff_protocol_kb() -> InlineKeyboardMarkup:
+    """Клавиатура выбора протокола при добавлении тарифа."""
+    protocols = [
+        ("🔵 VLESS", "vless"),
+        ("🟢 WireGuard", "wireguard"),
+        ("🟠 AmneziaWG", "amnezia"),
+        ("🟣 Xray", "xray"),
+    ]
+    buttons = [[InlineKeyboardButton(text=name, callback_data=f"add_tariff_proto:{proto}")] for name, proto in protocols]
+    buttons.append([InlineKeyboardButton(text="❌ Отмена", callback_data="admin_tariffs")])
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 
 # ============================================================================
@@ -130,8 +144,14 @@ async def render_tariff_view(message: Message, tariff_id: int, state: FSMContext
     price_usd = tariff['price_cents'] / 100
     price_str = f"{price_usd:g}".replace('.', ',')
     
+    proto_emoji = {'vless': '🔵', 'wireguard': '🟢', 'amnezia': '🟠', 'xray': '🟣'}
+    proto_label = {'vless': 'VLESS', 'wireguard': 'WireGuard', 'amnezia': 'AmneziaWG', 'xray': 'Xray'}
+    protocol = tariff.get('protocol', 'vless')
+    proto_str = f"{proto_emoji.get(protocol, '')} {proto_label.get(protocol, protocol)}"
+    
     lines = [
         f"📋 <b>{tariff['name']}</b>\n",
+        f"🔐 Протокол: <b>{proto_str}</b>",
         f"💰 Цена (USDT): <code>${price_str}</code>",
         f"⭐ Цена (Stars): <code>{tariff['price_stars']}</code>",
         f"💳 Цена (₽): <code>{tariff.get('price_rub', 0)}</code>",
@@ -315,19 +335,14 @@ async def start_add_tariff(callback: CallbackQuery, state: FSMContext):
         await callback.answer()
         return
     
-    # Одна группа — сразу к вводу данных
-    await state.set_state(AdminStates.add_tariff_name)
-    await state.update_data(tariff_data={}, add_step=1, selected_group_id=1)
-    
-    params = get_tariff_params_list()
-    params = [p for p in params if p['key'] != 'display_order']
-    total = len(params)
-    
-    text = get_add_step_text(1, {})
+    # Одна группа — сначала выбор протокола
+    await state.set_state(AdminStates.add_tariff_protocol)
+    await state.update_data(tariff_data={}, add_step=0, selected_group_id=1)
     
     await safe_edit_or_send(callback.message, 
-        text,
-        reply_markup=add_tariff_step_kb(1, total)
+        "📝 <b>Добавление тарифа</b>\n\n"
+        "Выберите протокол VPN для тарифа:",
+        reply_markup=add_tariff_protocol_kb()
     )
     await callback.answer()
 
@@ -339,17 +354,41 @@ async def tariff_group_selected(callback: CallbackQuery, state: FSMContext):
     
     data = await state.get_data()
     
+    await state.set_state(AdminStates.add_tariff_protocol)
+    await state.update_data(add_step=0, selected_group_id=group_id)
+    
+    group = get_group_by_id(group_id)
+    group_name = group['name'] if group else 'Основная'
+    
+    await safe_edit_or_send(callback.message, 
+        f"📂 Группа: <b>{group_name}</b>\n\n"
+        "📝 <b>Добавление тарифа</b>\n\n"
+        "Выберите протокол VPN для тарифа:",
+        reply_markup=add_tariff_protocol_kb()
+    )
+    await callback.answer()
+
+
+@router.callback_query(AdminStates.add_tariff_protocol, F.data.startswith("add_tariff_proto:"))
+async def add_tariff_protocol_selected(callback: CallbackQuery, state: FSMContext):
+    """Обработка выбора протокола — переход к вводу имени."""
+    protocol = callback.data.split(":")[1]
+    
+    data = await state.get_data()
+    tariff_data = data.get('tariff_data', {})
+    tariff_data['protocol'] = protocol
+    
     await state.set_state(AdminStates.add_tariff_name)
-    await state.update_data(add_step=1, selected_group_id=group_id)
+    await state.update_data(tariff_data=tariff_data, add_step=1)
     
     params = get_tariff_params_list()
     params = [p for p in params if p['key'] != 'display_order']
     total = len(params)
     
-    group = get_group_by_id(group_id)
-    group_name = group['name'] if group else 'Основная'
+    proto_emoji = {'vless': '🔵', 'wireguard': '🟢', 'amnezia': '🟠', 'xray': '🟣'}
+    proto_label = {'vless': 'VLESS', 'wireguard': 'WireGuard', 'amnezia': 'AmneziaWG', 'xray': 'Xray'}
     
-    text = f"📂 Группа: <b>{group_name}</b>\n\n" + get_add_step_text(1, {})
+    text = f"{proto_emoji.get(protocol, '')} Протокол: <b>{proto_label.get(protocol, protocol)}</b>\n\n" + get_add_step_text(1, tariff_data)
     
     await safe_edit_or_send(callback.message, 
         text,
@@ -368,9 +407,21 @@ async def add_tariff_back(callback: CallbackQuery, state: FSMContext):
     data = await state.get_data()
     current_step = data.get('add_step', 1)
     
-    if current_step <= 1:
+    if current_step <= 0:
         # Возврат к списку тарифов
         await show_tariffs_list(callback, state)
+        return
+    
+    if current_step == 1:
+        # Возврат к выбору протокола
+        await state.set_state(AdminStates.add_tariff_protocol)
+        await state.update_data(add_step=0)
+        await safe_edit_or_send(callback.message, 
+            "📝 <b>Добавление тарифа</b>\n\n"
+            "Выберите протокол VPN для тарифа:",
+            reply_markup=add_tariff_protocol_kb()
+        )
+        await callback.answer()
         return
     
     # На шаг назад
@@ -452,8 +503,13 @@ async def process_add_tariff_step(message: Message, state: FSMContext):
         price_usd = tariff_data['price_cents'] / 100
         price_str = f"{price_usd:g}".replace('.', ',')
         
+        proto_emoji = {'vless': '🔵', 'wireguard': '🟢', 'amnezia': '🟠', 'xray': '🟣'}
+        proto_label = {'vless': 'VLESS', 'wireguard': 'WireGuard', 'amnezia': 'AmneziaWG', 'xray': 'Xray'}
+        protocol = tariff_data.get('protocol', 'vless')
+        
         lines = [
             "✅ <b>Все данные введены!</b>\n",
+            f"{proto_emoji.get(protocol, '')} Протокол: <b>{proto_label.get(protocol, protocol)}</b>",
             f"📌 Название: <code>{tariff_data['name']}</code>",
             f"💰 Цена (USDT): <code>${price_str}</code>",
             f"⭐ Цена (Stars): <code>{tariff_data['price_stars']}</code>",
@@ -540,7 +596,8 @@ async def add_tariff_save(callback: CallbackQuery, state: FSMContext):
             display_order=0,
             traffic_limit_gb=tariff_data.get('traffic_limit_gb', 0),
             group_id=selected_group_id,
-            max_ips=tariff_data.get('max_ips', 1)
+            max_ips=tariff_data.get('max_ips', 1),
+            protocol=tariff_data.get('protocol', 'vless')
         )
         
         await safe_edit_or_send(callback.message, 

@@ -41,18 +41,18 @@ async def protocol_vless_handler(callback: CallbackQuery, state: FSMContext):
         await _admin_instant_key(callback, state, callback.from_user.id, "vless")
         return
 
-    # Обычный пользователь — показываем тарифы
+    # Обычный пользователь — показываем тарифы только для VLESS
     await state.update_data(protocol="vless")
 
     from database.requests import get_all_tariffs
     from bot.keyboards.user import tariff_select_kb
-    tariffs = get_all_tariffs(include_hidden=False)
+    tariffs = get_all_tariffs(include_hidden=False, protocol="vless")
     rub_tariffs = [t for t in tariffs if t.get('price_rub') and t['price_rub'] > 0]
     if not rub_tariffs:
-        await safe_edit_or_send(callback.message, '😔 <b>Нет доступных тарифов.</b>', reply_markup=home_only_kb())
+        await safe_edit_or_send(callback.message, '😔 <b>Нет доступных тарифов для VLESS.</b>', reply_markup=home_only_kb())
         await callback.answer()
         return
-    await safe_edit_or_send(callback.message, '💳 <b>Купить ключ</b>\n\nВыберите тариф:', reply_markup=tariff_select_kb(rub_tariffs, back_callback='buy_key', is_platega=True))
+    await safe_edit_or_send(callback.message, '💳 <b>Купить ключ (VLESS)</b>\\n\\nВыберите тариф:', reply_markup=tariff_select_kb(rub_tariffs, back_callback='buy_key', is_platega=True))
     await callback.answer()
 
 
@@ -220,27 +220,17 @@ async def _show_wg_tariffs(callback: CallbackQuery, state: FSMContext, amnezia: 
     """Показывает тарифы для WireGuard/AmneziaWG (только для обычных пользователей)."""
     from database.requests import get_all_tariffs, get_user_internal_id, create_pending_order
 
-    tariffs = get_all_tariffs()
-    if not tariffs:
-        await safe_edit_or_send(
-            callback.message,
-            "😔 К сожалению, тарифы пока не настроены.\nОбратитесь в поддержку.",
-            reply_markup=protocol_select_kb()
-        )
-        await callback.answer()
-        return
-
     protocol = "amnezia" if amnezia else "wireguard"
+    proto_label = "AmneziaWG" if amnezia else "WireGuard"
     await state.update_data(protocol=protocol)
 
-    # Показываем тарифы
-    from database.requests import get_all_tariffs
+    # Показываем тарифы только для выбранного протокола
     from bot.keyboards.user import tariff_select_kb
-    tariffs = get_all_tariffs(include_hidden=False)
+    tariffs = get_all_tariffs(include_hidden=False, protocol=protocol)
     rub_tariffs = [t for t in tariffs if t.get('price_rub') and t['price_rub'] > 0]
     if not rub_tariffs:
-        await safe_edit_or_send(callback.message, '😔 <b>Нет доступных тарифов.</b>', reply_markup=home_only_kb())
+        await safe_edit_or_send(callback.message, f'😔 <b>Нет доступных тарифов для {proto_label}.</b>', reply_markup=home_only_kb())
         await callback.answer()
         return
-    await safe_edit_or_send(callback.message, '💳 <b>Купить ключ</b>\n\nВыберите тариф:', reply_markup=tariff_select_kb(rub_tariffs, back_callback='buy_key', is_platega=True))
+    await safe_edit_or_send(callback.message, f'💳 <b>Купить ключ ({proto_label})</b>\n\nВыберите тариф:', reply_markup=tariff_select_kb(rub_tariffs, back_callback='buy_key', is_platega=True))
     await callback.answer()
