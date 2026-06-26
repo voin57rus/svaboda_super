@@ -1966,13 +1966,16 @@ async def gen_ai_key(message: Message, state: FSMContext):
     
     c.execute("SELECT username, ai_access, ai_tokens FROM users WHERE telegram_id=?", (tg_id,))
     row = c.fetchone()
-    
+
     if not row:
-        conn.close()
-        await message.reply(f"❌ Пользователь <code>{tg_id}</code> не найден в базе.", parse_mode="HTML")
-        return
-    
-    username, ai_access, ai_tokens = row
+        # Создаём пользователя если его нет
+        c.execute("INSERT OR IGNORE INTO users (telegram_id, username) VALUES (?, ?)", (tg_id, f"user_{tg_id}"))
+        username = f"user_{tg_id}"
+        ai_access = 0
+        ai_tokens = 0
+        print(f"[gen_ai_key] Создан новый пользователь telegram_id={tg_id}")
+    else:
+        username, ai_access, ai_tokens = row
     
     # Маппинг короткого тарифа в полный формат для БД
     _tmap = {'S': 'standard', 'P': 'premium', 'V': 'vip'}
