@@ -41,49 +41,18 @@ async def protocol_vless_handler(callback: CallbackQuery, state: FSMContext):
         await _admin_instant_key(callback, state, callback.from_user.id, "vless")
         return
 
-    # Обычный пользователь — стандартный поток
-    from database.requests import (
-        is_crypto_configured, is_stars_enabled, is_cards_enabled,
-        is_yookassa_qr_configured, is_wata_configured, is_platega_configured,
-        is_cardlink_configured, is_demo_payment_enabled,
-        get_user_internal_id, create_pending_order,
-    )
-    from bot.utils.page_renderer import render_page
-    from bot.keyboards.admin import home_only_kb
-
-    crypto_configured = is_crypto_configured()
-    stars_enabled = is_stars_enabled()
-    cards_enabled = is_cards_enabled()
-    yookassa_qr = is_yookassa_qr_configured()
-    wata_enabled = is_wata_configured()
-    platega_enabled = is_platega_configured()
-    cardlink_enabled = is_cardlink_configured()
-    demo_enabled = is_demo_payment_enabled()
-
-    if not any([crypto_configured, stars_enabled, cards_enabled, yookassa_qr,
-                wata_enabled, platega_enabled, cardlink_enabled, demo_enabled]):
-        await safe_edit_or_send(
-            callback.message,
-            '💳 <b>Купить ключ</b>\n\n😔 К сожалению, сейчас оплата недоступна.\n\nПопробуйте позже или обратитесь в поддержку.',
-            reply_markup=home_only_kb()
-        )
-        await callback.answer()
-        return
-
-    telegram_id = callback.from_user.id
-    user_id = get_user_internal_id(telegram_id)
-    order_id = None
-    if user_id:
-        (_, order_id) = create_pending_order(user_id=user_id, tariff_id=None,
-                                              payment_type=None, vpn_key_id=None)
-
+    # Обычный пользователь — показываем тарифы
     await state.update_data(protocol="vless")
 
-    context = {
-        'order_id': order_id,
-        'telegram_id': telegram_id,
-    }
-    await render_page(callback, page_key='prepayment', context=context)
+    from database.requests import get_all_tariffs
+    from bot.keyboards.user import tariff_select_kb
+    tariffs = get_all_tariffs(include_hidden=False)
+    rub_tariffs = [t for t in tariffs if t.get('price_rub') and t['price_rub'] > 0]
+    if not rub_tariffs:
+        await safe_edit_or_send(callback.message, '😔 <b>Нет доступных тарифов.</b>', reply_markup=home_only_kb())
+        await callback.answer()
+        return
+    await safe_edit_or_send(callback.message, '💳 <b>Купить ключ</b>\n\nВыберите тариф:', reply_markup=tariff_select_kb(rub_tariffs, back_callback='buy_key', is_platega=True))
     await callback.answer()
 
 
@@ -264,19 +233,14 @@ async def _show_wg_tariffs(callback: CallbackQuery, state: FSMContext, amnezia: 
     protocol = "amnezia" if amnezia else "wireguard"
     await state.update_data(protocol=protocol)
 
-    telegram_id = callback.from_user.id
-    user_id = get_user_internal_id(telegram_id)
-    order_id = None
-    if user_id:
-        (_, order_id) = create_pending_order(
-            user_id=user_id, tariff_id=None,
-            payment_type=None, vpn_key_id=None, protocol=protocol
-        )
-
-    from bot.utils.page_renderer import render_page
-    context = {
-        "order_id": order_id,
-        "telegram_id": telegram_id,
-    }
-    await render_page(callback, page_key="prepayment", context=context)
+    # Показываем тарифы
+    from database.requests import get_all_tariffs
+    from bot.keyboards.user import tariff_select_kb
+    tariffs = get_all_tariffs(include_hidden=False)
+    rub_tariffs = [t for t in tariffs if t.get('price_rub') and t['price_rub'] > 0]
+    if not rub_tariffs:
+        await safe_edit_or_send(callback.message, '😔 <b>Нет доступных тарифов.</b>', reply_markup=home_only_kb())
+        await callback.answer()
+        return
+    await safe_edit_or_send(callback.message, '💳 <b>Купить ключ</b>\n\nВыберите тариф:', reply_markup=tariff_select_kb(rub_tariffs, back_callback='buy_key', is_platega=True))
     await callback.answer()
