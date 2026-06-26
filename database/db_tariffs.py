@@ -236,22 +236,37 @@ def get_admin_tariff() -> Optional[Dict[str, Any]]:
 
 def delete_tariffs_by_protocol(protocol: str) -> int:
     """
-    Скрывает все тарифы для указанного протокола (is_active = 0).
-    Не удаляет физически чтобы не нарушить связи с ключами/заказами.
+    Удаляет тарифы для протокола, если на них нет ссылок.
+    Иначе скрывает (is_active = 0).
     
     Args:
         protocol: Протокол ('vless', 'wireguard', 'amnezia', 'xray')
         
     Returns:
-        Количество скрытых тарифов
+        Количество удалённых/скрытых тарифов
     """
     with get_db() as conn:
-        # Сначала считаем сколько всего тарифов для протокола
-        cursor_count = conn.execute("SELECT COUNT(*) FROM tariffs WHERE protocol = ?", (protocol,))
-        total = cursor_count.fetchone()[0]
-        # Скрываем все
-        conn.execute("UPDATE tariffs SET is_active = 0 WHERE protocol = ?", (protocol,))
-        logger.info(f"Скрыто {total} тарифов для протокола {protocol}")
-        return total
+        # Находим тарифы для протокола
+        cursor = conn.execute("SELECT id FROM tariffs WHERE protocol = ?", (protocol,))
+        tariff_ids = [row[0] for row in cursor.fetchall()]
+        
+        deleted = 0
+        hidden = 0
+        for tid in tariff_ids:
+            # Проверяем есть ли ссылки на этот тариф
+            ref_cursor = conn.execute("SELECT COUNT(*) FROM vpn_keys WHERE tariff_id = ?", (tid,))
+            ref_count = ref_cursor.fetchone()[0]
+            
+            if ref_count == 0:
+                # Нет ссылок — удаляем
+                conn.execute("DELETE FROM tariffs WHERE id = ?", (tid,))
+                deleted += 1
+            else:
+                # Есть ссылки — скрываем
+                conn.execute("UPDATE tariffs SET is_active = 0 WHERE id = ?", (tid,))
+                hidden += 1
+        
+        logger.info(f"Протокол {protocol}: удалено {deleted}, скрыто {hidden}")
+        return deleted + hidden
 
 
