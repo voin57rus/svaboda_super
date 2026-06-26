@@ -183,7 +183,7 @@ async def render_tariff_view(message: Message, tariff_id: int, state: FSMContext
     
     await safe_edit_or_send(message, 
         "\n".join(lines),
-        reply_markup=tariff_view_kb(tariff_id, tariff['is_active'], groups_count > 1)
+        reply_markup=tariff_view_kb(tariff_id, tariff['is_active'], groups_count > 1, protocol=tariff.get('protocol', 'vless'))
     )
 
 

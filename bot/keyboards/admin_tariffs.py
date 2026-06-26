@@ -54,7 +54,7 @@ def tariffs_list_kb(tariffs: List[Dict[str, Any]], include_hidden: bool=True) ->
     builder.row(back_button('admin_payments'), home_button())
     return builder.as_markup()
 
-def tariff_view_kb(tariff_id: int, is_active: bool, show_group_button: bool=False) -> InlineKeyboardMarkup:
+def tariff_view_kb(tariff_id: int, is_active: bool, show_group_button: bool=False, protocol: str = None) -> InlineKeyboardMarkup:
     """
     Клавиатура просмотра тарифа.
     
@@ -62,9 +62,13 @@ def tariff_view_kb(tariff_id: int, is_active: bool, show_group_button: bool=Fals
         tariff_id: ID тарифа
         is_active: Активен ли тариф
         show_group_button: Показывать ли кнопку «Изменить группу» (при >1 группе)
+        protocol: Протокол тарифа (для кнопки очистки)
     """
     builder = InlineKeyboardBuilder()
     builder.row(InlineKeyboardButton(text='✏️ Изменить', callback_data=f'admin_tariff_edit:{tariff_id}'))
+    if protocol:
+        clear_data = f'admin_tariffs_clear:{protocol}'
+        builder.row(InlineKeyboardButton(text=f'🗑 Очистить {protocol.upper()}', callback_data=clear_data))
     if is_active:
         toggle_text = '👁️\u200d🗨️ Скрыть'
     else:
