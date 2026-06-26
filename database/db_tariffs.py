@@ -246,9 +246,12 @@ def delete_tariffs_by_protocol(protocol: str) -> int:
         Количество скрытых тарифов
     """
     with get_db() as conn:
-        cursor = conn.execute("UPDATE tariffs SET is_active = 0 WHERE protocol = ? AND is_active = 1", (protocol,))
-        count = cursor.rowcount
-        logger.info(f"Скрыто {count} тарифов для протокола {protocol}")
-        return count
+        # Сначала считаем сколько всего тарифов для протокола
+        cursor_count = conn.execute("SELECT COUNT(*) FROM tariffs WHERE protocol = ?", (protocol,))
+        total = cursor_count.fetchone()[0]
+        # Скрываем все
+        conn.execute("UPDATE tariffs SET is_active = 0 WHERE protocol = ?", (protocol,))
+        logger.info(f"Скрыто {total} тарифов для протокола {protocol}")
+        return total
 
 
