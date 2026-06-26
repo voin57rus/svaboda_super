@@ -41,6 +41,16 @@ def tariffs_list_kb(tariffs: List[Dict[str, Any]], include_hidden: bool=True) ->
             price_str = f'{price:g}'.replace('.', ',')
             text = f"{status_emoji} {tariff['name']} — ${price_str}"
             builder.row(InlineKeyboardButton(text=text, callback_data=f"admin_tariff_view:{tariff['id']}"))
+    # Кнопки очистки тарифов по протоколам
+    builder.row(InlineKeyboardButton(text='🗑 Очистить тарифы по протоколу', callback_data='noop'))
+    builder.row(
+        InlineKeyboardButton(text='🔵 VLESS', callback_data='admin_tariffs_clear:vless'),
+        InlineKeyboardButton(text='🟢 WireGuard', callback_data='admin_tariffs_clear:wireguard'),
+    )
+    builder.row(
+        InlineKeyboardButton(text='🟠 AmneziaWG', callback_data='admin_tariffs_clear:amnezia'),
+        InlineKeyboardButton(text='🟣 Xray', callback_data='admin_tariffs_clear:xray'),
+    )
     builder.row(back_button('admin_payments'), home_button())
     return builder.as_markup()
 

@@ -23,7 +23,8 @@ from database.requests import (
     get_groups_count,
     get_all_groups,
     get_group_by_id,
-    update_tariff
+    update_tariff,
+    delete_tariffs_by_protocol,
 )
 from bot.utils.admin import is_admin
 from bot.states.admin_states import (
@@ -184,6 +185,29 @@ async def render_tariff_view(message: Message, tariff_id: int, state: FSMContext
         "\n".join(lines),
         reply_markup=tariff_view_kb(tariff_id, tariff['is_active'], groups_count > 1)
     )
+
+
+# ============================================================================
+# ОЧИСТКА ТАРИФОВ ПО ПРОТОКОЛУ
+# ============================================================================
+
+@router.callback_query(F.data.startswith("admin_tariffs_clear:"))
+async def clear_tariffs_by_protocol(callback: CallbackQuery, state: FSMContext):
+    """Удаляет все тарифы для выбранного протокола."""
+    if not is_admin(callback.from_user.id):
+        await callback.answer("⛔ Доступ запрещён", show_alert=True)
+        return
+    
+    protocol = callback.data.split(":")[1]
+    proto_emoji = {'vless': '🔵', 'wireguard': '🟢', 'amnezia': '🟠', 'xray': '🟣'}
+    proto_label = {'vless': 'VLESS', 'wireguard': 'WireGuard', 'amnezia': 'AmneziaWG', 'xray': 'Xray'}
+    
+    count = delete_tariffs_by_protocol(protocol)
+    
+    await callback.answer(f"✅ Удалено {count} тарифов для {proto_label.get(protocol, protocol)}", show_alert=True)
+    
+    # Показываем обновлённый список
+    await show_tariffs_list(callback, state)
 
 
 # ============================================================================

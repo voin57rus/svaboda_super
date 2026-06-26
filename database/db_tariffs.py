@@ -17,6 +17,7 @@ __all__ = [
     'toggle_tariff_active',
     'get_tariffs_count',
     'get_admin_tariff',
+    'delete_tariffs_by_protocol',
 ]
 
 def get_all_tariffs(include_hidden: bool = False, protocol: str = None) -> List[Dict[str, Any]]:
@@ -231,5 +232,22 @@ def get_admin_tariff() -> Optional[Dict[str, Any]]:
             'is_active': 0,
             'max_ips': 1
         }
+
+
+def delete_tariffs_by_protocol(protocol: str) -> int:
+    """
+    Удаляет все тарифы для указанного протокола.
+    
+    Args:
+        protocol: Протокол ('vless', 'wireguard', 'amnezia', 'xray')
+        
+    Returns:
+        Количество удалённых тарифов
+    """
+    with get_db() as conn:
+        cursor = conn.execute("DELETE FROM tariffs WHERE protocol = ?", (protocol,))
+        count = cursor.rowcount
+        logger.info(f"Удалено {count} тарифов для протокола {protocol}")
+        return count
 
 
