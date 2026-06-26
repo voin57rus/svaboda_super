@@ -236,37 +236,42 @@ def get_admin_tariff() -> Optional[Dict[str, Any]]:
 
 def delete_tariffs_by_protocol(protocol: str) -> int:
     """
-    Удаляет тарифы для протокола, если на них нет ссылок.
-    Иначе скрывает (is_active = 0).
+    Полностью удаляет все тарифы и связанные ключи для протокола.
     
     Args:
         protocol: Протокол ('vless', 'wireguard', 'amnezia', 'xray')
         
     Returns:
-        Количество удалённых/скрытых тарифов
+        Количество удалённых тарифов
     """
     with get_db() as conn:
-        # Находим тарифы для протокола
-        cursor = conn.execute("SELECT id FROM tariffs WHERE protocol = ?", (protocol,))
-        tariff_ids = [row[0] for row in cursor.fetchall()]
+        # Отключаем FK для безопасного удаления
+        conn.execute("PRAGMA foreign_keys = OFF")
         
-        deleted = 0
-        hidden = 0
-        for tid in tariff_ids:
-            # Проверяем есть ли ссылки на этот тариф
-            ref_cursor = conn.execute("SELECT COUNT(*) FROM vpn_keys WHERE tariff_id = ?", (tid,))
-            ref_count = ref_cursor.fetchone()[0]
+        try:
+            # Находим тарифы для протокола
+            cursor = conn.execute("SELECT id FROM tariffs WHERE protocol = ?", (protocol,))
+            tariff_ids = [row[0] for row in cursor.fetchall()]
             
-            if ref_count == 0:
-                # Нет ссылок — удаляем
-                conn.execute("DELETE FROM tariffs WHERE id = ?", (tid,))
-                deleted += 1
-            else:
-                # Есть ссылки — скрываем
-                conn.execute("UPDATE tariffs SET is_active = 0 WHERE id = ?", (tid,))
-                hidden += 1
-        
-        logger.info(f"Протокол {protocol}: удалено {deleted}, скрыто {hidden}")
-        return deleted + hidden
+            if not tariff_ids:
+                return 0
+            
+            # Удаляем связанные платежи (обнуляем vpn_key_id)
+            for tid in tariff_ids:
+                conn.execute("UPDATE payments SET vpn_key_id = NULL WHERE tariff_id = ?", (tid,))
+            
+            # Удаляем связанные VPN ключи
+            for tid in tariff_ids:
+                conn.execute("DELETE FROM vpn_keys WHERE tariff_id = ?", (tid,))
+            
+            # Удаляем тарифы
+            placeholders = ",".join("?" * len(tariff_ids))
+            cursor = conn.execute(f"DELETE FROM tariffs WHERE id IN ({placeholders})", tariff_ids)
+            count = cursor.rowcount
+            
+            logger.info(f"Протокол {protocol}: удалено {count} тарифов и их ключей")
+            return count
+        finally:
+            conn.execute("PRAGMA foreign_keys = ON")
 
 
