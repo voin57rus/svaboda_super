@@ -199,12 +199,11 @@ async def clear_tariffs_by_protocol(callback: CallbackQuery, state: FSMContext):
         return
     
     protocol = callback.data.split(":")[1]
-    proto_emoji = {'vless': '🔵', 'wireguard': '🟢', 'amnezia': '🟠', 'xray': '🟣'}
     proto_label = {'vless': 'VLESS', 'wireguard': 'WireGuard', 'amnezia': 'AmneziaWG', 'xray': 'Xray'}
     
     count = delete_tariffs_by_protocol(protocol)
     
-    await callback.answer(f"✅ Удалено {count} тарифов для {proto_label.get(protocol, protocol)}", show_alert=True)
+    await callback.answer(f"✅ Удалено {count} тарифов для {proto_label.get(protocol, protocol)}")
     
     # Показываем обновлённый список
     await show_tariffs_list(callback, state)
