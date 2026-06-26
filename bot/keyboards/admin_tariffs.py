@@ -51,6 +51,7 @@ def tariffs_list_kb(tariffs: List[Dict[str, Any]], include_hidden: bool=True) ->
         InlineKeyboardButton(text='🟠 AmneziaWG', callback_data='admin_tariffs_clear:amnezia'),
         InlineKeyboardButton(text='🟣 Xray', callback_data='admin_tariffs_clear:xray'),
     )
+    builder.row(InlineKeyboardButton(text='♻️ Восстановить все тарифы', callback_data='admin_tariffs_restore_all'))
     builder.row(back_button('admin_payments'), home_button())
     return builder.as_markup()
 

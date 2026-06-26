@@ -191,6 +191,25 @@ async def render_tariff_view(message: Message, tariff_id: int, state: FSMContext
 # ОЧИСТКА ТАРИФОВ ПО ПРОТОКОЛУ
 # ============================================================================
 
+@router.callback_query(F.data == "admin_tariffs_restore_all")
+async def restore_all_tariffs(callback: CallbackQuery, state: FSMContext):
+    """Восстанавливает все скрытые тарифы."""
+    if not is_admin(callback.from_user.id):
+        await callback.answer("⛔ Доступ запрещён", show_alert=True)
+        return
+    
+    from database.db_tariffs import get_all_tariffs
+    all_tariffs = get_all_tariffs(include_hidden=True)
+    count = sum(1 for t in all_tariffs if t['is_active'] == 0 and t['name'] not in ('Admin Free', 'Admin Tariff'))
+    
+    from database.connection import get_db
+    with get_db() as conn:
+        conn.execute("UPDATE tariffs SET is_active = 1 WHERE name NOT IN ('Admin Free', 'Admin Tariff')")
+    
+    await callback.answer(f"✅ Восстановлено {count} тарифов")
+    await show_tariffs_list(callback, state)
+
+
 @router.callback_query(F.data.startswith("admin_tariffs_clear:"))
 async def clear_tariffs_by_protocol(callback: CallbackQuery, state: FSMContext):
     """Удаляет все тарифы для выбранного протокола."""
