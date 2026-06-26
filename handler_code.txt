@@ -1,0 +1,78 @@
+
+@router.callback_query(F.data.startswith("edit_image:"))
+async def edit_image_start(callback: CallbackQuery, state: FSMContext):
+    if not is_admin(callback.from_user.id):
+        await callback.answer("⛔ Доступ запрещён", show_alert=True)
+        return
+    
+    from aiogram.utils.keyboard import InlineKeyboardBuilder
+    
+    page_key = callback.data.split(":")[1]
+    
+    import sqlite3
+    conn = sqlite3.connect('database/vpn_bot.db')
+    c = conn.cursor()
+    c.execute("SELECT image_custom, image_default FROM pages WHERE page_key=?", (page_key,))
+    row = c.fetchone()
+    conn.close()
+    
+    current_image = row[0] if row and row[0] else (row[1] if row and row[1] else None)
+    
+    await state.set_state('wait_edit_image')
+    await state.update_data(editing_image_page=page_key)
+    
+    builder = InlineKeyboardBuilder()
+    builder.row(InlineKeyboardButton(text="⬅️ Назад", callback_data="admin_edit_texts"))
+    
+    if current_image:
+        text = "🖼️ <b>Редактирование картинки: " + page_key + "</b>\n\nТекущая картинка:\n<code>" + str(current_image) + "</code>\n\n👇 Отправьте ссылку на новую картинку (http/https):"
+    else:
+        text = "🖼️ <b>Редактирование картинки: " + page_key + "</b>\n\nКартинка не установлена (используется дефолтная).\n\n👇 Отправьте ссылку на картинку (http/https):"
+    
+    await callback.message.edit_text(text, parse_mode="HTML", reply_markup=builder.as_markup())
+    await callback.answer()
+
+
+@router.message(StateFilter('wait_edit_image'), ~F.text.startswith('/'))
+async def save_image(message: Message, state: FSMContext):
+    if not is_admin(message.from_user.id):
+        return
+    
+    from bot.keyboards.admin import back_and_home_kb
+    from bot.utils.text import get_message_text_for_storage
+    
+    data = await state.get_data()
+    page_key = data.get('editing_image_page')
+    
+    if not page_key:
+        await state.clear()
+        await message.reply("❌ Ошибка состояния.", reply_markup=back_and_home_kb("admin_edit_texts"))
+        return
+    
+    new_value = get_message_text_for_storage(message, 'plain')
+    if not new_value.startswith(('http://', 'https://')):
+        await message.reply(
+            "❌ <b>Ошибка:</b> Ссылка должна начинаться с <code>http://</code> или <code>https://</code>\n\nВы ввели: <code>" + new_value + "</code>\n\nПопробуйте ещё раз или нажмите /start для отмены.",
+            parse_mode="HTML"
+        )
+        return
+    
+    import sqlite3
+    conn = sqlite3.connect('database/vpn_bot.db')
+    c = conn.cursor()
+    c.execute("UPDATE pages SET image_custom = ?, updated_at = CURRENT_TIMESTAMP WHERE page_key = ?", (new_value, page_key))
+    conn.commit()
+    conn.close()
+    
+    await state.clear()
+    
+    try:
+        await message.delete()
+    except Exception:
+        pass
+    
+    await message.answer(
+        "✅ <b>Картинка обновлена!</b>\n\n<code>" + new_value + "</code>",
+        parse_mode="HTML",
+        reply_markup=back_and_home_kb("admin_edit_texts")
+    )
