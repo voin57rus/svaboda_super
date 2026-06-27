@@ -111,8 +111,13 @@ async def cmd_start(message: Message, state: FSMContext, command: CommandObject)
     username = message.from_user.username
     await state.clear()
     (user, is_new) = get_or_create_user(user_id, username)
+
+    # Автоматически выбираем тариф если пользователь уже активировал AI
+    if user.get('ai_tariff'):
+        await state.update_data(selected_tariff=user['ai_tariff'])
+
     if user.get('is_banned'):
-        await safe_edit_or_send(message, '⛔ <b>Доступ заблокирован</b>', force_new=True)
+        await safe_edit_or_send(message, '<b>Доступ заблокирован</b>', force_new=True)
         return
     args = command.args
     if args and args.startswith('bill'):
@@ -145,6 +150,15 @@ async def callback_start(callback: CallbackQuery, state: FSMContext):
         await callback.answer('⛔ Доступ заблокирован', show_alert=True)
         return
     await state.clear()
+    # Автоматически выбираем тариф если пользователь уже активировал AI
+    import sqlite3
+    conn = sqlite3.connect('database/vpn_bot.db')
+    c = conn.cursor()
+    c.execute("SELECT ai_tariff FROM users WHERE telegram_id=?", (callback.from_user.id,))
+    row = c.fetchone()
+    conn.close()
+    if row and row[0]:
+        await state.update_data(selected_tariff=row[0])
     await _render_main_page(callback)
     await callback.answer()
 
@@ -508,8 +522,18 @@ async def ai_chat_handler(message: Message, state: FSMContext):
     state_data = await state.get_data()
     selected_tariff = state_data.get('selected_tariff')
 
+    # Если тариф не выбран в FSM — AI не отвечает (нужно выбрать тариф на главной)
+    if not selected_tariff:
+        await message.answer(
+            "🤖 <b>AI-ассистент</b>\n\n"
+            "Для общения с AI выберите тариф на главной странице.\n"
+            "Нажмите кнопку AI-тарифа (S, P или V) в меню.",
+            parse_mode="HTML"
+        )
+        return
+
     # Если выбран тариф и он не совпадает с активным — не отвечаем
-    if selected_tariff and current_tariff and selected_tariff != current_tariff:
+    if current_tariff and selected_tariff != current_tariff:
         tariff_names_rev = {'S': 'S', 'P': 'P', 'V': 'V', 'standard': 'S', 'premium': 'P', 'vip': 'V'}
         selected_name = tariff_names_rev.get(selected_tariff, selected_tariff)
         current_name = tariff_names_rev.get(current_tariff, current_tariff)
