@@ -111,11 +111,6 @@ async def cmd_start(message: Message, state: FSMContext, command: CommandObject)
     username = message.from_user.username
     await state.clear()
     (user, is_new) = get_or_create_user(user_id, username)
-
-    # Автоматически выбираем тариф если пользователь уже активировал AI
-    if user.get('ai_tariff'):
-        await state.update_data(selected_tariff=user['ai_tariff'])
-
     if user.get('is_banned'):
         await safe_edit_or_send(message, '<b>Доступ заблокирован</b>', force_new=True)
         return
@@ -150,15 +145,6 @@ async def callback_start(callback: CallbackQuery, state: FSMContext):
         await callback.answer('⛔ Доступ заблокирован', show_alert=True)
         return
     await state.clear()
-    # Автоматически выбираем тариф если пользователь уже активировал AI
-    import sqlite3
-    conn = sqlite3.connect('database/vpn_bot.db')
-    c = conn.cursor()
-    c.execute("SELECT ai_tariff FROM users WHERE telegram_id=?", (callback.from_user.id,))
-    row = c.fetchone()
-    conn.close()
-    if row and row[0]:
-        await state.update_data(selected_tariff=row[0])
     await _render_main_page(callback)
     await callback.answer()
 
