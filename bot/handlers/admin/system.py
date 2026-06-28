@@ -1611,52 +1611,72 @@ async def list_ai_keys(message: Message, state: FSMContext):
 
 @router.callback_query(F.data == "admin_ai_give_key")
 async def ai_give_key_start(callback: CallbackQuery, state: FSMContext):
-    """Показываем инструкцию по генерации AI-ключа (из БД)."""
+    """Выбор тарифа для генерации AI-ключа."""
     if not is_admin(callback.from_user.id):
         await callback.answer("⛔ Доступ запрещён", show_alert=True)
         return
-    
-    import sqlite3
-    conn = sqlite3.connect('database/vpn_bot.db')
-    c = conn.cursor()
-    c.execute("SELECT text_custom, text_default FROM pages WHERE page_key='ai_key_instructions'")
-    row = c.fetchone()
-    conn.close()
-    
-    page_text = row[0] if row and row[0] else (row[1] if row else None)
-    
-    if not page_text:
-        # Фоллбэк если нет в БД
-        page_text = (
-            "🔑 <b>Выдача AI-ключа</b>\n\n"
-            "Используй команду:\n"
-            "<code>/gen_ai_key [тариф] [id юзера] [код]</code>\n\n"
-            "Тарифы:\n"
-            "• <b>S</b> — 10,000 токенов\n"
-            "• <b>P</b> — 20,000 токенов\n"
-            "• <b>V</b> — 50,000 токенов\n\n"
-            "Примеры:\n"
-            "• <code>/gen_ai_key S 5191406344 123455</code>\n"
-            "• <code>/gen_ai_key P 5191406344 client1</code>\n"
-            "• <code>/gen_ai_key V 5191406344 vipkey</code>\n\n"
-            "Ключ активируется автоматически для указанного юзера."
-        )
-    
+
+    from aiogram.utils.keyboard import InlineKeyboardBuilder
+    builder = InlineKeyboardBuilder()
+    builder.row(InlineKeyboardButton(text="🤖 S — 10,000 токенов", callback_data="admin_ai_gen:S"))
+    builder.row(InlineKeyboardButton(text="🤖 P — 20,000 токенов", callback_data="admin_ai_gen:P"))
+    builder.row(InlineKeyboardButton(text="🤖 V — 50,000 токенов", callback_data="admin_ai_gen:V"))
+    builder.row(InlineKeyboardButton(text="⬅️ Назад", callback_data="admin_ai_access"))
+
     await safe_edit_or_send(
         callback.message,
-        page_text,
-        reply_markup=back_and_home_kb("admin_ai_access"),
+        "🔑 <b>Выдача AI-ключа</b>\n\n"
+        "Выберите тариф — бот сгенерирует ключ.\n"
+        "Отдайте ключ юзеру, он вставит: <code>/ai_key [ключ]</code>",
+        reply_markup=builder.as_markup(),
     )
     await callback.answer()
 
 
 @router.callback_query(F.data.startswith("admin_ai_gen:"))
 async def ai_give_key_generate(callback: CallbackQuery, state: FSMContext):
-    """Генерируем ключ по выбранному тарифу."""
+    """Генерирует AI-ключ по выбранному тарифу."""
     if not is_admin(callback.from_user.id):
         await callback.answer("⛔ Доступ запрещён", show_alert=True)
         return
-    
+
+    import sqlite3
+    import random
+    import string
+
+    tariff = callback.data.split(":")[1]
+    tariff_map = {'S': 10000, 'P': 20000, 'V': 50000}
+    tokens = tariff_map.get(tariff, 10000)
+
+    # Генерируем случайный код ключа
+    code = ''.join(random.choices(string.ascii_lowercase + string.digits, k=8))
+    full_key = f"{tariff}-{code}"
+
+    conn = sqlite3.connect('database/vpn_bot.db')
+    c = conn.cursor()
+    c.execute(
+        "INSERT INTO ai_keys (key, tokens, created_by, tariff, is_active) VALUES (?, ?, ?, ?, 1)",
+        (full_key, tokens, callback.from_user.id, tariff)
+    )
+    conn.commit()
+    key_id = c.lastrowid
+    conn.close()
+
+    from aiogram.utils.keyboard import InlineKeyboardBuilder
+    builder = InlineKeyboardBuilder()
+    builder.row(InlineKeyboardButton(text="🔑 Ещё ключ", callback_data=f"admin_ai_gen:{tariff}"))
+    builder.row(InlineKeyboardButton(text="⬅️ Назад", callback_data="admin_ai_give_key"))
+
+    await safe_edit_or_send(
+        callback.message,
+        f"✅ <b>AI-ключ сгенерирован!</b>\n\n"
+        f"📦 Тариф: <b>{tariff}</b>\n"
+        f"💰 Токенов: {tokens:,}\n"
+        f"🔑 Ключ: <code>{full_key}</code>\n\n"
+        f"Отдайте ключ юзеру — он вставит: <code>/ai_key {full_key}</code>",
+        reply_markup=builder.as_markup(),
+    )
+    await callback.answer()
 
 
 # ============================================================================
