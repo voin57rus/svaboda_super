@@ -363,16 +363,13 @@ async def cmd_ai_key(message: Message, state: FSMContext):
     c = conn.cursor()
 
     # Проверяем не активирован ли уже AI
-    c.execute("SELECT ai_access, ai_tariff, ai_chat_active FROM users WHERE telegram_id=?", (user_id,))
+    c.execute("SELECT ai_access, ai_tariff, ai_chat_active, ai_key FROM users WHERE telegram_id=?", (user_id,))
     row = c.fetchone()
     if row and row[0] == 1:
-        conn.close()
-        await state.clear()
-        await message.answer(
-            f"ℹ️ <b>Вы уже активировали AI-доступ!</b>\nТариф: {row[1]}",
-            parse_mode="HTML"
-        )
-        return
+        # Удаляем старый ключ и заменяем новым
+        old_key = row[3]
+        if old_key:
+            c.execute("DELETE FROM ai_keys WHERE key=?", (old_key,))
 
     # Ищем ключ в ai_keys
     c.execute("SELECT id, tokens, activated_by, tariff FROM ai_keys WHERE key=? AND is_active=1", (key,))
