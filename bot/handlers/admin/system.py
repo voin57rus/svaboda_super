@@ -1407,6 +1407,7 @@ async def admin_ai_access_menu(callback: CallbackQuery, state: FSMContext):
     
     builder.row(InlineKeyboardButton(text="🔑 Активация ключа", callback_data="admin_ai_give_key"))
     builder.row(InlineKeyboardButton(text="💰 Пополнить токены", callback_data="admin_ai_add_tokens"))
+    builder.row(InlineKeyboardButton(text="🔑 Выдача AI-ключа", callback_data="edit_text:ai_key_instructions"))
     builder.row(InlineKeyboardButton(text="⬅️ Назад", callback_data="admin_edit_texts"))
     
     await safe_edit_or_send(callback.message, text, reply_markup=builder.as_markup())
