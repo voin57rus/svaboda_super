@@ -567,7 +567,6 @@ async def edit_texts_menu(callback: CallbackQuery, state: FSMContext):
     builder.row(InlineKeyboardButton(text="💬 Ссылка: Поддержка", callback_data="edit_link:support"))
     builder.row(InlineKeyboardButton(text="📢 Ссылка: Мой канал", callback_data="edit_link:channel"))
     builder.row(InlineKeyboardButton(text="🖼️ Стартовая картинка", callback_data="edit_image:main"))
-    builder.row(InlineKeyboardButton(text="🔑 Выдача AI-ключа", callback_data="edit_text:ai_key_instructions"))
     builder.row(InlineKeyboardButton(text="🤖 AI тариф S", callback_data="edit_text:ai_tariff_user_text_s"))
     builder.row(InlineKeyboardButton(text="🤖 AI тариф P", callback_data="edit_text:ai_tariff_user_text_p"))
     builder.row(InlineKeyboardButton(text="🤖 AI тариф V", callback_data="edit_text:ai_tariff_user_text_v"))
@@ -1408,6 +1407,7 @@ async def admin_ai_access_menu(callback: CallbackQuery, state: FSMContext):
     
     builder.row(InlineKeyboardButton(text="🔑 Выдать AI-ключ", callback_data="admin_ai_give_key"))
     builder.row(InlineKeyboardButton(text="💰 Пополнить токены", callback_data="admin_ai_add_tokens"))
+    builder.row(InlineKeyboardButton(text="🔑 Активация ключа", callback_data="edit_text:ai_key_instructions"))
     builder.row(InlineKeyboardButton(text="⬅️ Назад", callback_data="admin_edit_texts"))
     
     await safe_edit_or_send(callback.message, text, reply_markup=builder.as_markup())
