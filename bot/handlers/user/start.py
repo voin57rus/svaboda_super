@@ -381,6 +381,22 @@ async def cmd_ai_key(message: Message, state: FSMContext):
 
     key_id, tokens, activated_by, key_tariff = key_row
 
+    # Проверяем что ключ соответствует выбранному тарифу
+    data = await state.get_data()
+    selected_tariff = data.get('selected_tariff', '')
+    tariff_to_key = {'standard': 'S', 'premium': 'P', 'vip': 'V'}
+    if selected_tariff:
+        expected_letter = tariff_to_key.get(selected_tariff, '')
+        if expected_letter and key_tariff != expected_letter:
+            tariff_names = {'standard': 'S', 'premium': 'P', 'vip': 'V'}
+            await message.answer(
+                f"❌ Этот ключ тарифа <b>{key_tariff}</b>, а вы выбрали тариф <b>{tariff_names.get(selected_tariff, selected_tariff)}</b>.\n\n"
+                f"Вставьте ключ для тарифа <b>{tariff_names.get(selected_tariff, selected_tariff)}</b>.",
+                parse_mode="HTML"
+            )
+            conn.close()
+            return
+
     # Активируем ключ
     _tmap = {'S': 'standard', 'P': 'premium', 'V': 'vip'}
     key_tariff_full = _tmap.get(key_tariff, key_tariff)
