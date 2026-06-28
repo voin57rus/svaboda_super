@@ -390,8 +390,10 @@ async def cmd_ai_key(message: Message, state: FSMContext):
         if expected_letter and key_tariff != expected_letter:
             tariff_names = {'standard': 'S', 'premium': 'P', 'vip': 'V'}
             await message.answer(
-                f"❌ Этот ключ тарифа <b>{key_tariff}</b>, а вы выбрали тариф <b>{tariff_names.get(selected_tariff, selected_tariff)}</b>.\n\n"
-                f"Вставьте ключ для тарифа <b>{tariff_names.get(selected_tariff, selected_tariff)}</b>.",
+                f"⛔ Ой, ты хитрец! 😏\n\n"
+                f"У вас тариф <b>{tariff_names.get(selected_tariff, selected_tariff)}</b>, "
+                f"а ключ от тарифа <b>{key_tariff}</b>.\n\n"
+                f"Вставьте ключ для тарифа <b>{tariff_names.get(selected_tariff, selected_tariff)}</b>! 🔑",
                 parse_mode="HTML"
             )
             conn.close()
