@@ -1310,6 +1310,28 @@ def migration_35(conn):
     logger.info("Миграция v35 применена: добавлены WG/AWG поля")
 
 
+def migration_36(conn):
+    """
+    Миграция v36: добавление страницы ai_key_mismatch для сообщения о несовпадении тарифа ключа.
+    """
+    conn.execute(
+        """
+        INSERT OR IGNORE INTO pages (page_key, text_default, buttons_default)
+        VALUES (?, ?, ?)
+        """,
+        (
+            'ai_key_mismatch',
+            '⛔ Ключ от другого тарифа.\n\nУ вас тариф {user_tariff}, а этот ключ — от тарифа {key_tariff}.\n\nВведите ключ для тарифа {user_tariff}.',
+            json.dumps([
+                {"id": "btn_back_main", "label": "📋 На главную", "color": "secondary", "row": 0, "col": 0, "is_hidden": False, "action_type": "internal", "action_value": "cmd_start"},
+            ], ensure_ascii=False),
+        ),
+    )
+    logger.info("Миграция v36 применена: добавлена страница ai_key_mismatch")
+
+
+LATEST_VERSION = 36
+
 MIGRATIONS = {
     22: migration_22,
     23: migration_23,
@@ -1325,6 +1347,7 @@ MIGRATIONS = {
     33: migration_33,
     34: migration_34,
     35: migration_35,
+    36: migration_36,
 }
 
 

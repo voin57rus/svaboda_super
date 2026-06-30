@@ -389,13 +389,25 @@ async def cmd_ai_key(message: Message, state: FSMContext):
         expected_letter = tariff_to_key.get(selected_tariff, '')
         if expected_letter and key_tariff != expected_letter:
             tariff_names = {'standard': 'S', 'premium': 'P', 'vip': 'V'}
-            await message.answer(
-                f"⛔ Ой, ты хитрец! 😏\n\n"
-                f"У вас тариф <b>{tariff_names.get(selected_tariff, selected_tariff)}</b>, "
-                f"а ключ от тарифа <b>{key_tariff}</b>.\n\n"
-                f"Вставьте ключ для тарифа <b>{tariff_names.get(selected_tariff, selected_tariff)}</b>! 🔑",
-                parse_mode="HTML"
-            )
+            user_tariff_name = tariff_names.get(selected_tariff, selected_tariff)
+            # Получаем текст из БД (page ai_key_mismatch)
+            from database.db_pages import get_page
+            page_row = get_page('ai_key_mismatch')
+            if page_row:
+                text = (page_row.get('text_custom') or page_row.get('text_default') or '')
+                text = text.replace('{user_tariff}', user_tariff_name).replace('{key_tariff}', key_tariff)
+            else:
+                text = (
+                    f"⛔ Ключ от другого тарифа.\n\n"
+                    f"У вас тариф <b>{user_tariff_name}</b>, "
+                    f"а этот ключ — от тарифа <b>{key_tariff}</b>.\n\n"
+                    f"Введите ключ для тарифа <b>{user_tariff_name}</b>."
+                )
+            from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+            kb = InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(text="📋 На главную", callback_data="start")],
+            ])
+            await message.answer(text, parse_mode="HTML", reply_markup=kb)
             conn.close()
             return
 
