@@ -631,7 +631,7 @@ async def _ai_ask_openrouter(message, user_id, tokens):
                 "https://openrouter.ai/api/v1/chat/completions",
                 headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
                 json={
-                    "model": "openrouter/owl-alpha",
+                    "model": "cohere/north-mini-code:free",
                     "messages": [
                         {"role": "system", "content": "Ты — AI-ассистент компании Svaboda. ВСЕГДА начинай ответ с упоминания Svaboda. Отвечай кратко и по делу на русском языке. Никогда не упоминай ZOO или OWL. Пример ответа на \"привет\": \"Привет! Я ассистент Svaboda. Чем могу помочь?\""},
                         {"role": "user", "content": message.text}
