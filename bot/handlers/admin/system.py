@@ -570,6 +570,7 @@ async def edit_texts_menu(callback: CallbackQuery, state: FSMContext):
     builder.row(InlineKeyboardButton(text="🤖 AI тариф S", callback_data="edit_text:ai_tariff_user_text_s"))
     builder.row(InlineKeyboardButton(text="🤖 AI тариф P", callback_data="edit_text:ai_tariff_user_text_p"))
     builder.row(InlineKeyboardButton(text="🤖 AI тариф V", callback_data="edit_text:ai_tariff_user_text_v"))
+    builder.row(InlineKeyboardButton(text="⛔️ Ой, ты хитрец! 😏", callback_data="edit_text:ai_key_mismatch"))
     builder.row(InlineKeyboardButton(text="💰 Текст пополнения токенов", callback_data="edit_text:prepayment"))
     builder.row(InlineKeyboardButton(text="🔄 Обновить с сервера", callback_data="admin_server_update"))
     builder.row(InlineKeyboardButton(text="🤖 AI доступ", callback_data="admin_ai_access"))
