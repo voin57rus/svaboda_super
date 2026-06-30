@@ -728,18 +728,18 @@ async def edit_text_start(callback: CallbackQuery, state: FSMContext):
     
     # Белый список допустимых ключей — защита от инъекции произвольного ключа настроек
     ALLOWED_KEYS = {
-        'main',
-        'help',
-        'help_btn_label',
-        'info',
-        'prepayment',
-        'key_delivery',
-        'ai_key_instructions',
-        'ai_tokens',
-        'ai_tariff_user_text_s',
-        'ai_tariff_user_text_p',
-        'ai_tariff_user_text_v',
-        'ai_key_instructions',
+    'main',
+    'help',
+    'help_btn_label',
+    'info',
+    'prepayment',
+    'key_delivery',
+    'ai_key_instructions',
+    'ai_tokens',
+    'ai_tariff_user_text_s',
+    'ai_tariff_user_text_p',
+    'ai_tariff_user_text_v',
+    'ai_key_mismatch',
     }
     
     if key not in ALLOWED_KEYS:
