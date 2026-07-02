@@ -114,7 +114,7 @@ async def cmd_start(message: Message, state: FSMContext, command: CommandObject)
     # Сбрасываем флаг AI-чата при /start
     import sqlite3
     conn = sqlite3.connect('database/vpn_bot.db')
-    conn.execute('UPDATE users SET ai_chat_active=0 WHERE telegram_id=?', (user_id,))
+    conn.execute('UPDATE users SET ai_chat_active=1 WHERE telegram_id=?', (user_id,))
     conn.commit()
     conn.close()
     if user.get('is_banned'):
@@ -631,7 +631,7 @@ async def _ai_ask_openrouter(message, user_id, tokens):
                 "https://openrouter.ai/api/v1/chat/completions",
                 headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
                 json={
-                    "model": "poolside/laguna-m.1:free",
+                    "model": "cohere/north-mini-code:free",
                     "messages": [
                         {"role": "system", "content": "Ты — AI-ассистент компании Svaboda. ВСЕГДА начинай ответ с упоминания Svaboda. Отвечай кратко и по делу на русском языке. Никогда не упоминай ZOO или OWL. Пример ответа на \"привет\": \"Привет! Я ассистент Svaboda. Чем могу помочь?\""},
                         {"role": "user", "content": message.text}
@@ -660,7 +660,7 @@ async def _ai_ask_openrouter(message, user_id, tokens):
         logger.error("AI request timed out (60s)")
         await message.answer("⚠️ Ошибка AI: сервер не ответил вовремя. Попробуйте ещё раз.")
         return
-    except Exception as e:
+NVIDIA    except Exception as e:
         error_name = type(e).__name__
         error_msg = str(e)
         # ServerDisconnectedError — ретрай раз
@@ -672,7 +672,7 @@ async def _ai_ask_openrouter(message, user_id, tokens):
                         "https://openrouter.ai/api/v1/chat/completions",
                         headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
                         json={
-                            "model": "poolside/laguna-m.1:free",
+                            "model": "openrouter/owl-alpha",
                             "messages": [
                                 {"role": "system", "content": "Ты — AI-ассистент компании Svaboda. ВСЕГДА начинай ответ с упоминания Svaboda. Отвечай кратко и по делу на русском языке. Никогда не упоминай ZOO или OWL. Пример ответа на \"привет\": \"Привет! Я ассистент Svaboda. Чем могу помочь?\""},
                                 {"role": "user", "content": message.text}
