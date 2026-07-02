@@ -7,3 +7,6 @@ bot.log
 logs/
 database/vpn_bot.db
 *.db
+bot_run.log
+*.log
+*.save
