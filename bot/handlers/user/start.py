@@ -227,7 +227,7 @@ async def _show_ai_tariff(callback, state, tariff, price, tokens):
         await callback.answer()
         import sqlite3
         conn = sqlite3.connect('database/vpn_bot.db')
-       # conn.execute('UPDATE users SET ai_chat_active=1 WHERE telegram_id=?', (callback.from_user.id,))
+       conn.execute('UPDATE users SET ai_chat_active=1 WHERE telegram_id=?', (callback.from_user.id,))
         conn.commit()
         conn.close()
         text = (
@@ -286,7 +286,7 @@ async def _show_ai_tariff(callback, state, tariff, price, tokens):
         await callback.answer()
         import sqlite3
         conn = sqlite3.connect('database/vpn_bot.db')
-       # conn.execute('UPDATE users SET ai_chat_active=1 WHERE telegram_id=?', (callback.from_user.id,))
+       conn.execute('UPDATE users SET ai_chat_active=1 WHERE telegram_id=?', (callback.from_user.id,))
         conn.commit()
         conn.close()
         text = (
