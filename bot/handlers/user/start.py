@@ -479,12 +479,9 @@ async def cmd_buy_tokens(message: Message, state: FSMContext):
         tokens = f"{row[1]:,}"
         text = page_text.replace('{tariff}', tariff).replace('{tokens}', tokens)
         # Добавляем HTML-форматирование (в БД хранится чистый текст)
-        text = text.replace('📸 После оплаты', '<b>📸 После оплаты</b>')
+        text = text.replace('📸 После оплаты', '<b>📸 После оплаты')
         text = text.replace(' By Oleg', ' <b>By Oleg</b>')
-        text = text.replace('💰 Пополнение токенов', '<b>💰 Пополнение токенов</b>')
-        text = text.replace(
-    '📢 Канал поддержки: https://t.me/Answer_na_Questions',
-    '📢 <a href="https://t.me/Answer_na_Questions">Канал поддержки</a>')
+        text = text.replace('📢 Канал поддержки: https://t.me/Answer_na_Questions', '📢 <a href="https://t.me/Answer_na_Questions">Канал поддержки</a>')
     else:
         # Фоллбэк если нет в БД
         text = (
@@ -500,7 +497,6 @@ async def cmd_buy_tokens(message: Message, state: FSMContext):
         )
     kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="📋 На главную", callback_data="start")]])
     await message.answer(text, parse_mode="HTML", reply_markup=kb)
-
 
 
 # /updatebot — обработка ДО ai_chat_handler (чтобы не попадал в AI)
