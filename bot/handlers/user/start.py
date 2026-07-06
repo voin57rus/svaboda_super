@@ -648,6 +648,3 @@ async def _ai_ask_openrouter(message, user_id, tokens):
     conn.close()
 
     await message.answer(answer, parse_mode="HTML")
-
-
-
