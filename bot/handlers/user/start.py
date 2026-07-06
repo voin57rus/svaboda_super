@@ -404,58 +404,30 @@ async def cmd_buy_tokens(message: Message, state: FSMContext):
     row = c.fetchone()
     conn.close()
 
-    if not row or row[0] != 1:
-        await message.answer("🤖 У вас нет активного AI-доступа. Сначала активируйте ключ: /ai_key <ключ>", parse_mode="HTML")
-        return
-
-    # Загружаем текст пополнения из БД (page_key='prepayment')
-    # Сначала пробуем text_custom (от админки), иначе text_default
-    conn2 = sqlite3.connect('database/vpn_bot.db')
-    c2 = conn2.cursor()
-    c2.execute("SELECT text_custom, text_default FROM pages WHERE page_key='prepayment'")
-    page_row = c2.fetchone()
-    conn2.close()
-
-    page_text = page_row[0] if page_row and page_row[0] else (page_row[1] if page_row else None)
-
     if page_text:
-    # Подставляем динамические данные (тариф, токены)
-    tariff = (row[2] or 'не указан').upper()
-    tokens = f"{row[1]:,}"
-
-    text = str(page_text or "")
-
-    text = text.replace('{tariff}', tariff).replace('{tokens}', tokens)
-
-    # Добавляем HTML-форматирование (в БД хранится чистый текст)
-    text = text.replace('📸 После оплаты', '<b>📸 После оплаты</b>')
-    text = text.replace(' By Oleg', ' <b>By Oleg</b>')
-    text = text.replace(
-        '📢 Канал поддержки: https://t.me/Answer_na_Questions',
-        '📢 <a href="https://t.me/Answer_na_Questions">Канал поддержки</a>'
-    )
-
-    # 🔥 ЗАЩИТА ОТ СКРЫТЫХ СИМВОЛОВ
-    text = text.replace('\u200d', '')
-    text = text.replace('\u200b', '')
-
-else:
-    # Фоллбэк если нет в БД
-    text = (
-        "💰 <b>Пополнение токенов</b>\n\n"
-        f"📦 Тариф: <b>{(row[2] or 'не указан').upper()}</b>\n"
-        f"🪙 Текущих токенов: <b>{row[1]:,}</b>\n\n"
-        "• 5,000 токенов — 100₽\n"
-        "• 10,000 токенов — 180₽\n"
-        "• 25,000 токенов — 400₽\n"
-        "• 50,000 токенов — 700₽\n\n"
-        "🏦 Карта: <code>0000 0000 0000 0000</code>\n"
-        "📸 После оплаты отправьте скрин админу."
-    )
-
-kb = InlineKeyboardMarkup(
-    inline_keyboard=[[InlineKeyboardButton(text="📋 На главную", callback_data="start")]]
-)
+        # Подставляем динамические данные (тариф, токены)
+        tariff = (row[2] or 'не указан').upper()
+        tokens = f"{row[1]:,}"
+        text = page_text.replace('{tariff}', tariff).replace('{tokens}', tokens)
+        # Добавляем HTML-форматирование (в БД хранится чистый текст)
+        text = text.replace('📸 После оплаты', '<b>📸 После оплаты</b>')
+        text = text.replace(' By Oleg', ' <b>By Oleg</b>')
+        text = text.replace('📢 Канал поддержки: https://t.me/Answer_na_Questions', '📢 <a href="https://t.me/Answer_na_Questions">Канал поддержки</a>')
+    else:
+        # Фоллбэк если нет в БД
+        text = (
+            "💰 <b>Пополнение токенов</b>\n\n"
+            f"📦 Тариф: <b>{(row[2] or 'не указан').upper()}</b>\n"
+            f"🪙 Текущих токенов: <b>{row[1]:,}</b>\n\n"
+            "• 5,000 токенов — 100₽\n"
+            "• 10,000 токенов — 180₽\n"
+            "• 25,000 токенов — 400₽\n"
+            "• 50,000 токенов — 700₽\n\n"
+            "🏦 Карта: <code>0000 0000 0000 0000</code>\n"
+            "📸 После оплаты отправьте скрин админу."
+        )
+    kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="📋 На главную", callback_data="start")]])
+    await message.answer(text, parse_mode="HTML", reply_markup=kb)
 
 # 🔥 финальная защита перед Telegram
 text = str(text)
