@@ -232,7 +232,7 @@ async def _show_ai_tariff(callback, state, tariff, price, tokens):
     if has_access:
         display_tariff = TARIFF_NAMES_RU.get(current_tariff, current_tariff).upper()
         # Если выбрал НЕ свой тариф — показываем сообщение с предложением купить ключ
-        if current_tariff and current_tariff.upper() != TARIFF_NAMES_RU.get(tariff, '').upper():
+        if current_tariff and current_tariff != tariff:
             text = _get_ai_tariff_user_text(tariff_name, price, tokens)
             text = f"⛔ У вас активирован тариф <b>{display_tariff}</b>.\n\nДля доступа к тарифу <b>{tariff_name}</b> приобретите отдельный ключ.\n\n" + text
             kb = InlineKeyboardMarkup(inline_keyboard=[
@@ -325,7 +325,8 @@ async def cmd_ai_key(message: Message, state: FSMContext):
         code = args[2].strip()
         key = f"{tariff}-{code}"
     elif '-' in args[1]:
-        key = args[1].strip()
+        # Формат: /ai_key S-4t77755
+        key = args[1].strip().upper()
     else:
         await message.reply("❌ Неверный формат.\n\nИспользуйте: <code>/ai_key S-4t77755</code>\nили: <code>/ai_key S 4t77755</code>", parse_mode="HTML")
         return
@@ -558,7 +559,7 @@ async def _ai_ask_openrouter(message, user_id, tokens):
                 "https://openrouter.ai/api/v1/chat/completions",
                 headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
                 json={
-                    "model": "qwen/qwen-2.5-7b-instruct",
+                    "model": "openrouter/owl-alpha",
                     "messages": [
                         {"role": "system", "content": "Ты — AI-ассистент компании Svaboda. ВСЕГДА начинай ответ с упоминания Svaboda. Отвечай кратко и по делу на русском языке. Никогда не упоминай ZOO или OWL. Пример ответа на \"привет\": \"Привет! Я ассистент Svaboda. Чем могу помочь?\"\n\nВАЖНО: Никогда не отвечай на вопросы про погоду или текущее время — бот обрабатывает их автоматически через API. Если юзер спрашивает погоду/время — просто скажи \"Узнаю данные...\" и не пытайся отвечать."},
                         {"role": "user", "content": message.text}
@@ -599,7 +600,7 @@ async def _ai_ask_openrouter(message, user_id, tokens):
                         "https://openrouter.ai/api/v1/chat/completions",
                         headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
                         json={
-                            "model": "qwen/qwen-2.5-7b-instruct",
+                            "model": "openrouter/owl-alpha",
                             "messages": [
                                 {"role": "system", "content": "Ты — AI-ассистент компании Svaboda. ВСЕГДА начинай ответ с упоминания Svaboda. Отвечай кратко и по делу на русском языке. Никогда не упоминай ZOO или OWL. Пример ответа на \"привет\": \"Привет! Я ассистент Svaboda. Чем могу помочь?\"\n\nВАЖНО: Никогда не отвечай на вопросы про погоду или текущее время — бот обрабатывает их автоматически через API. Если юзер спрашивает погоду/время — просто скажи \"Узнаю данные...\" и не пытайся отвечать."},
                                 {"role": "user", "content": message.text}
