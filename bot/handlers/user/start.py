@@ -418,36 +418,34 @@ async def cmd_buy_tokens(message: Message, state: FSMContext):
 
     page_text = page_row[0] if page_row and page_row[0] else (page_row[1] if page_row else None)
 
+    if page_text:
+        # Подставляем динамические данные (тариф, токены)
+        tariff = (row[2] or 'не указан').upper()
+        tokens = f"{row[1]:,}"
+        # Добавляем HTML-форматирование (в БД хранится чистый текст)
+        text = page_text.replace('{tariff}', tariff).replace('{tokens}', tokens)
+        
+        text = text.replace('By Oleg', '<b>By Oleg</b>')
+        text = text.replace('https://t.me/Answer_na_Questions',
+                    '<a href="https://t.me/Answer_na_Questions">Канал поддержки</a>')
+
+        await message.answer(text, parse_mode="HTML", reply_markup=kb)
 
 
-if page_text:
-    tariff = (row[2] or 'не указан').upper()
-    tokens = f"{row[1]:,}"
-
-    text = page_text.replace('{tariff}', tariff).replace('{tokens}', tokens)
-
-    text = text.replace('By Oleg', '<b>By Oleg</b>')
-    text = text.replace(
-        'https://t.me/Answer_na_Questions',
-        '<a href="https://t.me/Answer_na_Questions">Канал поддержки</a>'
-    )
-    await message.answer(text, parse_mode="HTML", reply_markup=kb)
-
-else:
-    text = (
-        "💰 <b>Пополнение токенов</b>\n\n"
-        f"📦 Тариф: <b>{(row[2] or 'не указан').upper()}</b>\n"
-        f"🪙 Текущих токенов: <b>{row[1]:,}</b>\n\n"
-        "• 5,000 токенов — 100₽\n"
-        "• 10,000 токенов — 180₽\n"
-        "• 25,000 токенов — 400₽\n"
-        "• 50,000 токенов — 700₽\n\n"
-        "🏦 Карта: <code>0000 0000 0000 0000</code>\n"
-        "📸 После оплаты отправьте скрин админу."
-    )
-
-
-kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="📋 На главную", callback_data="start")]])
+    else:
+        # Фоллбэк если нет в БД
+        text = (
+            "💰 <b>Пополнение токенов</b>\n\n"
+            f"📦 Тариф: <b>{(row[2] or 'не указан').upper()}</b>\n"
+            f"🪙 Текущих токенов: <b>{row[1]:,}</b>\n\n"
+            "• 5,000 токенов — 100₽\n"
+            "• 10,000 токенов — 180₽\n"
+            "• 25,000 токенов — 400₽\n"
+            "• 50,000 токенов — 700₽\n\n"
+            "🏦 Карта: <code>0000 0000 0000 0000</code>\n"
+            "📸 После оплаты отправьте скрин админу."
+        )
+    kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="📋 На главную", callback_data="start")]])
     await message.answer(text, parse_mode="HTML", reply_markup=kb)
 
 
