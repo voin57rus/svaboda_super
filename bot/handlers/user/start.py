@@ -111,8 +111,14 @@ async def cmd_start(message: Message, state: FSMContext, command: CommandObject)
     username = message.from_user.username
     await state.clear()
     (user, is_new) = get_or_create_user(user_id, username)
+    # Сбрасываем флаг AI-чата при /start
+    import sqlite3
+    conn = sqlite3.connect('database/vpn_bot.db')
+    conn.execute('UPDATE users SET ai_chat_active=0 WHERE telegram_id=?', (user_id,))
+    conn.commit()
+    conn.close()
     if user.get('is_banned'):
-        await safe_edit_or_send(message, '⛔ <b>Доступ заблокирован</b>', force_new=True)
+        await safe_edit_or_send(message, '<b>Доступ заблокирован</b>', force_new=True)
         return
     args = command.args
     if args and args.startswith('bill'):
@@ -145,6 +151,12 @@ async def callback_start(callback: CallbackQuery, state: FSMContext):
         await callback.answer('⛔ Доступ заблокирован', show_alert=True)
         return
     await state.clear()
+    # Сбрасываем флаг AI-чата при возврате на главную
+    import sqlite3
+    conn = sqlite3.connect('database/vpn_bot.db')
+    conn.execute('UPDATE users SET ai_chat_active=0 WHERE telegram_id=?', (callback.from_user.id,))
+    conn.commit()
+    conn.close()
     await _render_main_page(callback)
     await callback.answer()
 
@@ -201,7 +213,7 @@ async def _show_ai_tariff(callback, state, tariff, price, tokens):
 
     conn = sqlite3.connect('database/vpn_bot.db')
     c = conn.cursor()
-    c.execute("SELECT ai_access, ai_tokens, ai_tariff FROM users WHERE telegram_id=?", (user_id,))
+    c.execute("SELECT ai_access, ai_tokens, ai_tariff, ai_chat_active FROM users WHERE telegram_id=?", (user_id,))
     row = c.fetchone()
     conn.close()
 
@@ -210,9 +222,14 @@ async def _show_ai_tariff(callback, state, tariff, price, tokens):
     current_tariff = row[2] if (row and row[2]) else ''
     tariff_name = TARIFF_NAMES_RU.get(tariff, tariff)
 
-    # Если админ — показываем AI-чат без ограничений
+    # Если админ — показываем AI-чат без ограничений и входим в AI-чат
     if is_admin:
         await callback.answer()
+        import sqlite3
+        conn = sqlite3.connect('database/vpn_bot.db')
+        conn.execute('UPDATE users SET ai_chat_active=1 WHERE telegram_id=?', (callback.from_user.id,))
+        conn.commit()
+        conn.close()
         text = (
             f"🤖 <b>AI-ассистент</b> <i>(админ)</i>\n\n"
             f"📦 Ваш активный тариф: <b>{TARIFF_NAMES_RU.get(current_tariff, 'нет').upper()}</b>\n"
@@ -232,7 +249,13 @@ async def _show_ai_tariff(callback, state, tariff, price, tokens):
     if has_access:
         display_tariff = TARIFF_NAMES_RU.get(current_tariff, current_tariff).upper()
         # Если выбрал НЕ свой тариф — показываем сообщение с предложением купить ключ
-        if current_tariff and current_tariff.upper() != TARIFF_NAMES_RU.get(tariff, '').upper():
+        if current_tariff and current_tariff != tariff:
+            # Сбрасываем флаг AI-чата (это не AI-чат, это страница покупки)
+            import sqlite3
+            conn = sqlite3.connect('database/vpn_bot.db')
+            conn.execute('UPDATE users SET ai_chat_active=0 WHERE telegram_id=?', (callback.from_user.id,))
+            conn.commit()
+            conn.close()
             text = _get_ai_tariff_user_text(tariff_name, price, tokens)
             text = f"⛔ У вас активирован тариф <b>{display_tariff}</b>.\n\nДля доступа к тарифу <b>{tariff_name}</b> приобретите отдельный ключ.\n\n" + text
             kb = InlineKeyboardMarkup(inline_keyboard=[
@@ -259,8 +282,13 @@ async def _show_ai_tariff(callback, state, tariff, price, tokens):
             await state.update_data(ai_msg_id=msg.message_id)
             await callback.answer()
             return
-        # Если свой тариф — показываем AI-чат интерфейс
+        # Если свой тариф — показываем AI-чат интерфейс и входим в AI-чат
         await callback.answer()
+        import sqlite3
+        conn = sqlite3.connect('database/vpn_bot.db')
+        conn.execute('UPDATE users SET ai_chat_active=1 WHERE telegram_id=?', (callback.from_user.id,))
+        conn.commit()
+        conn.close()
         text = (
             f"🤖 <b>AI-ассистент</b>\n\n"
             f"✅ Тариф: <b>{display_tariff}</b>\n"
@@ -325,6 +353,7 @@ async def cmd_ai_key(message: Message, state: FSMContext):
         code = args[2].strip()
         key = f"{tariff}-{code}"
     elif '-' in args[1]:
+        # Формат: /ai_key S-4t77755
         key = args[1].strip()
     else:
         await message.reply("❌ Неверный формат.\n\nИспользуйте: <code>/ai_key S-4t77755</code>\nили: <code>/ai_key S 4t77755</code>", parse_mode="HTML")
@@ -334,16 +363,13 @@ async def cmd_ai_key(message: Message, state: FSMContext):
     c = conn.cursor()
 
     # Проверяем не активирован ли уже AI
-    c.execute("SELECT ai_access, ai_tariff FROM users WHERE telegram_id=?", (user_id,))
+    c.execute("SELECT ai_access, ai_tariff, ai_chat_active, ai_key FROM users WHERE telegram_id=?", (user_id,))
     row = c.fetchone()
     if row and row[0] == 1:
-        conn.close()
-        await state.clear()
-        await message.answer(
-            f"ℹ️ <b>Вы уже активировали AI-доступ!</b>\nТариф: {row[1]}",
-            parse_mode="HTML"
-        )
-        return
+        # Удаляем старый ключ и заменяем новым
+        old_key = row[3]
+        if old_key:
+            c.execute("DELETE FROM ai_keys WHERE key=?", (old_key,))
 
     # Ищем ключ в ai_keys
     c.execute("SELECT id, tokens, activated_by, tariff FROM ai_keys WHERE key=? AND is_active=1", (key,))
@@ -355,12 +381,42 @@ async def cmd_ai_key(message: Message, state: FSMContext):
 
     key_id, tokens, activated_by, key_tariff = key_row
 
+    # Проверяем что ключ соответствует выбранному тарифу
+    data = await state.get_data()
+    selected_tariff = data.get('selected_tariff', '')
+    tariff_to_key = {'standard': 'S', 'premium': 'P', 'vip': 'V'}
+    if selected_tariff:
+        expected_letter = tariff_to_key.get(selected_tariff, '')
+        if expected_letter and key_tariff != expected_letter:
+            tariff_names = {'standard': 'S', 'premium': 'P', 'vip': 'V'}
+            user_tariff_name = tariff_names.get(selected_tariff, selected_tariff)
+            # Получаем текст из БД (page ai_key_mismatch)
+            from database.db_pages import get_page
+            page_row = get_page('ai_key_mismatch')
+            if page_row:
+                text = (page_row.get('text_custom') or page_row.get('text_default') or '')
+                text = text.replace('{user_tariff}', user_tariff_name).replace('{key_tariff}', key_tariff)
+            else:
+                text = (
+                    f"⛔ Ключ от другого тарифа.\n\n"
+                    f"У вас тариф <b>{user_tariff_name}</b>, "
+                    f"а этот ключ — от тарифа <b>{key_tariff}</b>.\n\n"
+                    f"Введите ключ для тарифа <b>{user_tariff_name}</b>."
+                )
+            from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+            kb = InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(text="📋 На главную", callback_data="start")],
+            ])
+            await message.answer(text, parse_mode="HTML", reply_markup=kb)
+            conn.close()
+            return
+
     # Активируем ключ
     _tmap = {'S': 'standard', 'P': 'premium', 'V': 'vip'}
     key_tariff_full = _tmap.get(key_tariff, key_tariff)
     c.execute("UPDATE ai_keys SET activated_by=?, activated_at=CURRENT_TIMESTAMP, is_active=0 WHERE id=?",
               (user_id, key_id))
-    c.execute("UPDATE users SET ai_access=1, ai_tokens=?, ai_key=?, ai_tariff=? WHERE telegram_id=?",
+    c.execute("UPDATE users SET ai_access=1, ai_tokens=?, ai_key=?, ai_tariff=?, ai_chat_active=0 WHERE telegram_id=?",
               (tokens, key, key_tariff_full, user_id))
     conn.commit()
     conn.close()
@@ -423,7 +479,7 @@ async def cmd_buy_tokens(message: Message, state: FSMContext):
         tokens = f"{row[1]:,}"
         text = page_text.replace('{tariff}', tariff).replace('{tokens}', tokens)
         # Добавляем HTML-форматирование (в БД хранится чистый текст)
-        text = text.replace('📸 После оплаты', '<b>📸 После оплаты</b>')
+        text = text.replace('📸 После оплаты', '<b>📸 После оплаты')
         text = text.replace(' By Oleg', ' <b>By Oleg</b>')
         text = text.replace('📢 Канал поддержки: https://t.me/Answer_na_Questions', '📢 <a href="https://t.me/Answer_na_Questions">Канал поддержки</a>')
     else:
@@ -455,7 +511,7 @@ async def updatebot_user_handler(message: Message, state: FSMContext):
     await updatebot_command(message, state)
 
 
-@router.message(Command("start"), StateFilter('*'))
+# Глобальный AI-чат хендлер — один на всех, проверяет selected_tariff из FSM
 @router.message(F.text & ~F.text.startswith('/'))
 async def ai_chat_handler(message: Message, state: FSMContext):
     """Обрабатывает обычные текстовые сообщения как AI-чат (если есть доступ)."""
@@ -480,51 +536,68 @@ async def ai_chat_handler(message: Message, state: FSMContext):
 
     conn = sqlite3.connect('database/vpn_bot.db')
     c = conn.cursor()
-    c.execute("SELECT ai_access, ai_tokens, ai_tariff FROM users WHERE telegram_id=?", (user_id,))
+    c.execute("SELECT ai_access, ai_tokens, ai_tariff, ai_chat_active FROM users WHERE telegram_id=?", (user_id,))
     row = c.fetchone()
     conn.close()
 
     has_access = row and row[0] == 1
     tokens = row[1] if row else 0
     current_tariff = row[2] if (row and row[2]) else ''
+    ai_chat_active = row[3] if (row and row[3]) else 0
 
-    # Админ — полный доступ без ограничений по тарифу
-    if is_admin:
+    # Пользователь в AI-чате (ai_chat_active=1) — отвечаем
+    if ai_chat_active:
+        # Админ — бесплатный доступ без проверки ai_access
+        if is_admin:
+            return await _ai_ask_openrouter(message, user_id, tokens)
+
+        # Нет доступа (не должно быть т.к. проверяется при входе)
+        if not has_access:
+            await message.answer(
+                "🤖 <b>AI-ассистент</b>\n\nУ вас нет доступа к AI-чату.\nАктивируйте ключ: /ai_key [ключ]",
+                parse_mode="HTML"
+            )
+            return
+
+        # Токены закончились
         if tokens <= 0:
             await message.answer("⚠️ <b>Токены закончились</b>\n\nПополните: /buy_tokens", parse_mode="HTML")
             return
-        return await _ai_ask_openrouter(message, user_id, tokens)
 
-    # Нет доступа
-    if not has_access:
+        # Предупреждение о малом количестве токенов
+        if tokens <= 10:
+            await message.answer(
+                f"⚠️ <b>Осталось {tokens} токенов!</b>\n\nНе забудьте пополнить: /buy_tokens",
+                parse_mode="HTML"
+            )
+
+        await _ai_ask_openrouter(message, user_id, tokens)
+        return
+
+    # Не в AI-чате — проверяем есть ли доступ
+    if is_admin:
+        # Админ вне AI-чата — молчим
+        return
+
+    if has_access:
+        # Есть доступ но не в AI-чате — значит нажал на чужой тариф
+        tariff_display = TARIFF_NAMES_RU.get(current_tariff, current_tariff).upper()
         await message.answer(
-            "🤖 <b>AI-ассистент</b>\n\nУ вас нет доступа к AI-чату.\nАктивируйте ключ: /ai_key [ключ]",
+            f"⛔ У вас активирован тариф <b>{tariff_display}</b>.\n\n"
+            "Для доступа к этому AI-тарифу приобретите отдельный ключ.\n"
+            f"Или войдите в свой AI <b>{tariff_display}</b> тариф и продолжайте общение.",
             parse_mode="HTML"
         )
         return
-
-    # Проверяем выбранный тариф (из FSM состояния)
-    state_data = await state.get_data()
-    selected_tariff = state_data.get('selected_tariff')
-
-    # Если выбран тариф и он не совпадает с активным — не отвечаем
-    if selected_tariff and current_tariff and selected_tariff != current_tariff:
-        tariff_names_rev = {'S': 'S', 'P': 'P', 'V': 'V', 'standard': 'S', 'premium': 'P', 'vip': 'V'}
-        selected_name = tariff_names_rev.get(selected_tariff, selected_tariff)
-        current_name = tariff_names_rev.get(current_tariff, current_tariff)
+    else:
+        # Нет доступа — подсказка оплатить или ввести ключ
         await message.answer(
-            f"⛔ У вас активирован тариф <b>{current_name}</b>.\n\n"
-            f"Для общения в тарифе <b>{selected_name}</b> активируйте ключ для этого тарифа.\n"
-            f"Или перейдите в свой активный тариф <b>{current_name}</b>.",
+            "🔒 <b>Для общения с AI нужен доступ</b>\n\n"
+            "💰 Оплатите тариф или введите ключ:\n"
+            "<code>/ai_key [ключ]</code>",
             parse_mode="HTML"
         )
         return
-
-    # Токены закончились
-    if tokens <= 0:
-        await message.answer("⚠️ <b>Токены закончились</b>\n\nПополните: /buy_tokens", parse_mode="HTML")
-        return
-
     # Предупреждение о малом количестве токенов
     if tokens <= 10:
         await message.answer(
@@ -558,9 +631,9 @@ async def _ai_ask_openrouter(message, user_id, tokens):
                 "https://openrouter.ai/api/v1/chat/completions",
                 headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
                 json={
-                    "model": "qwen/qwen-2.5-7b-instruct",
+                    "model": "poolside/laguna-m.1:free",
                     "messages": [
-                        {"role": "system", "content": "Ты — AI-ассистент компании Svaboda. ВСЕГДА начинай ответ с упоминания Svaboda. Отвечай кратко и по делу на русском языке. Никогда не упоминай ZOO или OWL. Пример ответа на \"привет\": \"Привет! Я ассистент Svaboda. Чем могу помочь?\"\n\nВАЖНО: Никогда не отвечай на вопросы про погоду или текущее время — бот обрабатывает их автоматически через API. Если юзер спрашивает погоду/время — просто скажи \"Узнаю данные...\" и не пытайся отвечать."},
+                        {"role": "system", "content": "Ты — AI-ассистент компании Svaboda. ВСЕГДА начинай ответ с упоминания Svaboda. Отвечай кратко и по делу на русском языке. Никогда не упоминай ZOO или OWL. Пример ответа на \"привет\": \"Привет! Я ассистент Svaboda. Чем могу помочь?\""},
                         {"role": "user", "content": message.text}
                     ],
                     "max_tokens": 512,
@@ -599,9 +672,9 @@ async def _ai_ask_openrouter(message, user_id, tokens):
                         "https://openrouter.ai/api/v1/chat/completions",
                         headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
                         json={
-                            "model": "qwen/qwen-2.5-7b-instruct",
+                            "model": "poolside/laguna-m.1:free",
                             "messages": [
-                                {"role": "system", "content": "Ты — AI-ассистент компании Svaboda. ВСЕГДА начинай ответ с упоминания Svaboda. Отвечай кратко и по делу на русском языке. Никогда не упоминай ZOO или OWL. Пример ответа на \"привет\": \"Привет! Я ассистент Svaboda. Чем могу помочь?\"\n\nВАЖНО: Никогда не отвечай на вопросы про погоду или текущее время — бот обрабатывает их автоматически через API. Если юзер спрашивает погоду/время — просто скажи \"Узнаю данные...\" и не пытайся отвечать."},
+                                {"role": "system", "content": "Ты — AI-ассистент компании Svaboda. ВСЕГДА начинай ответ с упоминания Svaboda. Отвечай кратко и по делу на русском языке. Никогда не упоминай ZOO или OWL. Пример ответа на \"привет\": \"Привет! Я ассистент Svaboda. Чем могу помочь?\""},
                                 {"role": "user", "content": message.text}
                             ],
                             "max_tokens": 512,
@@ -648,3 +721,4 @@ async def _ai_ask_openrouter(message, user_id, tokens):
     conn.close()
 
     await message.answer(answer, parse_mode="HTML")
+
