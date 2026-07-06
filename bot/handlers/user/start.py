@@ -114,7 +114,7 @@ async def cmd_start(message: Message, state: FSMContext, command: CommandObject)
     # Сбрасываем флаг AI-чата при /start
     import sqlite3
     conn = sqlite3.connect('database/vpn_bot.db')
-   # conn.execute('UPDATE users SET ai_chat_active=0 WHERE telegram_id=?', (user_id,))
+    conn.execute('UPDATE users SET ai_chat_active=0 WHERE telegram_id=?', (user_id,))
     conn.commit()
     conn.close()
     if user.get('is_banned'):
@@ -154,7 +154,7 @@ async def callback_start(callback: CallbackQuery, state: FSMContext):
     # Сбрасываем флаг AI-чата при возврате на главную
     import sqlite3
     conn = sqlite3.connect('database/vpn_bot.db')
-   # conn.execute('UPDATE users SET ai_chat_active=0 WHERE telegram_id=?', (callback.from_user.id,))
+    conn.execute('UPDATE users SET ai_chat_active=0 WHERE telegram_id=?', (callback.from_user.id,))
     conn.commit()
     conn.close()
     await _render_main_page(callback)
@@ -227,7 +227,7 @@ async def _show_ai_tariff(callback, state, tariff, price, tokens):
         await callback.answer()
         import sqlite3
         conn = sqlite3.connect('database/vpn_bot.db')
-       conn.execute('UPDATE users SET ai_chat_active=1 WHERE telegram_id=?', (callback.from_user.id,))
+        conn.execute('UPDATE users SET ai_chat_active=1 WHERE telegram_id=?', (callback.from_user.id,))
         conn.commit()
         conn.close()
         text = (
@@ -253,7 +253,7 @@ async def _show_ai_tariff(callback, state, tariff, price, tokens):
             # Сбрасываем флаг AI-чата (это не AI-чат, это страница покупки)
             import sqlite3
             conn = sqlite3.connect('database/vpn_bot.db')
-           # conn.execute('UPDATE users SET ai_chat_active=0 WHERE telegram_id=?', (callback.from_user.id,))
+            conn.execute('UPDATE users SET ai_chat_active=0 WHERE telegram_id=?', (callback.from_user.id,))
             conn.commit()
             conn.close()
             text = _get_ai_tariff_user_text(tariff_name, price, tokens)
@@ -286,7 +286,7 @@ async def _show_ai_tariff(callback, state, tariff, price, tokens):
         await callback.answer()
         import sqlite3
         conn = sqlite3.connect('database/vpn_bot.db')
-       conn.execute('UPDATE users SET ai_chat_active=1 WHERE telegram_id=?', (callback.from_user.id,))
+        conn.execute('UPDATE users SET ai_chat_active=1 WHERE telegram_id=?', (callback.from_user.id,))
         conn.commit()
         conn.close()
         text = (
@@ -721,3 +721,4 @@ async def _ai_ask_openrouter(message, user_id, tokens):
     conn.close()
 
     await message.answer(answer, parse_mode="HTML")
+
