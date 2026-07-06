@@ -472,11 +472,8 @@ async def cmd_buy_tokens(message: Message, state: FSMContext):
     conn2.close()
 
     page_text = page_row[0] if page_row and page_row[0] else (page_row[1] if page_row else None)
-
    
-
-    if page_text:
-    import html    
+   if page_text:
         # Подставляем динамические данные (тариф, токены)
         tariff = (row[2] or 'не указан').upper()
         tokens = f"{row[1]:,}"
@@ -500,6 +497,8 @@ async def cmd_buy_tokens(message: Message, state: FSMContext):
         )
     kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="📋 На главную", callback_data="start")]])
     await message.answer(text, parse_mode="HTML", reply_markup=kb)
+
+    
 
 
 # /updatebot — обработка ДО ai_chat_handler (чтобы не попадал в AI)
