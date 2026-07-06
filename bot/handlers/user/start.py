@@ -424,12 +424,10 @@ async def cmd_buy_tokens(message: Message, state: FSMContext):
 
         text = page_text.replace('{tariff}', tariff).replace('{tokens}', tokens)
 
-       text = text.replace('By Oleg', '<b>By Oleg</b>')
-       text = text.replace(
-        'https://t.me/Answer_na_Questions',
-        '<a href="https://t.me/Answer_na_Questions">Канал поддержки</a>')
+        text = text.replace('By Oleg', '<b>By Oleg</b>')
+        text = text.replace('https://t.me/Answer_na_Questions','<a href="https://t.me/Answer_na_Questions">Канал поддержки</a>')
 
-       await message.answer(text, parse_mode="HTML", reply_markup=kb)
+        await message.answer(text, parse_mode="HTML", reply_markup=kb)
     else:
         # Фоллбэк если нет в БД
         text = (
