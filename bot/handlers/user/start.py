@@ -232,7 +232,7 @@ async def _show_ai_tariff(callback, state, tariff, price, tokens):
     if has_access:
         display_tariff = TARIFF_NAMES_RU.get(current_tariff, current_tariff).upper()
         # Если выбрал НЕ свой тариф — показываем сообщение с предложением купить ключ
-        if current_tariff and current_tariff.upper() != TARIFF_NAMES_RU.get(tariff, '').upper():
+        if current_tariff and current_tariff != tariff:
             text = _get_ai_tariff_user_text(tariff_name, price, tokens)
             text = f"⛔ У вас активирован тариф <b>{display_tariff}</b>.\n\nДля доступа к тарифу <b>{tariff_name}</b> приобретите отдельный ключ.\n\n" + text
             kb = InlineKeyboardMarkup(inline_keyboard=[
@@ -325,7 +325,8 @@ async def cmd_ai_key(message: Message, state: FSMContext):
         code = args[2].strip()
         key = f"{tariff}-{code}"
     elif '-' in args[1]:
-        key = args[1].strip()
+        # Формат: /ai_key S-4t77755
+        key = args[1].strip().upper()
     else:
         await message.reply("❌ Неверный формат.\n\nИспользуйте: <code>/ai_key S-4t77755</code>\nили: <code>/ai_key S 4t77755</code>", parse_mode="HTML")
         return
@@ -648,5 +649,4 @@ async def _ai_ask_openrouter(message, user_id, tokens):
     conn.close()
 
     await message.answer(answer, parse_mode="HTML")
-
 
