@@ -420,30 +420,32 @@ async def cmd_buy_tokens(message: Message, state: FSMContext):
 
     
     if page_text:
+    # Подставляем динамические данные (тариф, токены)
     tariff = (row[2] or 'не указан').upper()
     tokens = f"{row[1]:,}"
+    text = page_text.replace('{tariff}', tariff).replace('{tokens}', tokens)
 
-    text = page_text
+    # Добавляем HTML-форматирование (в БД хранится чистый текст)
+    text = text.replace('📸 После оплаты', '<b>📸 После оплаты</b>')
+    text = text.replace(' By Oleg', ' <b>By Oleg</b>')
+    text = text.replace(
+        '📢 Канал поддержки: https://t.me/Answer_na_Questions',
+        '📢 <a href="https://t.me/Answer_na_Questions">Канал поддержки</a>'
+    )
 
-    if text:
-        text = text.replace('{tariff}', tariff)
-        text = text.replace('{tokens}', tokens)
-
-        text = text.replace('📸 После оплаты', '<b>📸 После оплаты</b>')
-        text = text.replace(' By Oleg', ' <b>By Oleg</b>')
-        text = text.replace(
-            '📢 Канал поддержки: https://t.me/Answer_na_Questions',
-            '📢 <a href="https://t.me/Answer_na_Questions">Канал поддержки</a>'
-        )
+    # 🔥 ЗАЩИТА (единственное добавление)
+    text = str(text)
+    text = text.replace('\u200d', '')
 
 else:
+    # Фоллбэк если нет в БД
     text = (
         "💰 <b>Пополнение токенов</b>\n\n"
         f"📦 Тариф: <b>{(row[2] or 'не указан').upper()}</b>\n"
         f"🪙 Текущих токенов: <b>{row[1]:,}</b>\n\n"
         "• 5,000 токенов — 100₽\n"
         "• 10,000 токенов — 180₽\n"
-        "• 25,000 токенов — 400₽\n"
+        "• 25,000 токенов — 400₽\n\n"
         "• 50,000 токенов — 700₽\n\n"
         "🏦 Карта: <code>0000 0000 0000 0000</code>\n"
         "📸 После оплаты отправьте скрин админу."
