@@ -1,5 +1,6 @@
 import logging
 import asyncio
+import html
 from datetime import datetime
 from aiogram import Router, F
 from aiogram.types import Message, CallbackQuery, InlineKeyboardButton
@@ -417,7 +418,7 @@ async def cmd_buy_tokens(message: Message, state: FSMContext):
 
     page_text = page_row[0] if page_row and page_row[0] else (page_row[1] if page_row else None)
 
-    import html
+    
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 try:
