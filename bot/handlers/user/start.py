@@ -650,3 +650,4 @@ async def _ai_ask_openrouter(message, user_id, tokens):
     await message.answer(answer, parse_mode="HTML")
 
 
+
