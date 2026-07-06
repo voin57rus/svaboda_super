@@ -418,15 +418,13 @@ async def cmd_buy_tokens(message: Message, state: FSMContext):
 
     page_text = page_row[0] if page_row and page_row[0] else (page_row[1] if page_row else None)
 
-    if page_text:
+     if page_text:
         # Подставляем динамические данные (тариф, токены)
         tariff = (row[2] or 'не указан').upper()
         tokens = f"{row[1]:,}"
-        text = page_text.replace('{tariff}', tariff).replace('{tokens}', tokens)
         # Добавляем HTML-форматирование (в БД хранится чистый текст)
         text = page_text.replace('{tariff}', tariff).replace('{tokens}', tokens)
-        text = page_text.replace('{tariff}', tariff).replace('{tokens}', tokens)
-
+        
         text = text.replace('By Oleg', '<b>By Oleg</b>')
         text = text.replace('https://t.me/Answer_na_Questions',
                     '<a href="https://t.me/Answer_na_Questions">Канал поддержки</a>')
