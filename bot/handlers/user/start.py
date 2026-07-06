@@ -479,9 +479,7 @@ async def cmd_buy_tokens(message: Message, state: FSMContext):
         tokens = f"{row[1]:,}"
         text = page_text.replace('{tariff}', tariff).replace('{tokens}', tokens)
         # Добавляем HTML-форматирование (в БД хранится чистый текст)
-        text = text.replace('👨‍💻 By Oleg', '')
-        text = text.replace('📢 Канал поддержки: https://t.me/Answer_na_Questions', '')
-        text = text.replace('https://t.me/Answer_na_Questions', '')
+        
         
         
     else:
