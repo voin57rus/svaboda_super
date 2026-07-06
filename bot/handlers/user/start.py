@@ -558,7 +558,7 @@ async def _ai_ask_openrouter(message, user_id, tokens):
                 "https://openrouter.ai/api/v1/chat/completions",
                 headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
                 json={
-                    "model": "mistralai/mistral-7b-instruct:free",
+                    "model": "meta-llama/llama-3.1-8b-instruct:free",
                     "messages": [
                         {"role": "system", "content": "Ты — AI-ассистент компании Svaboda. ВСЕГДА начинай ответ с упоминания Svaboda. Отвечай кратко и по делу на русском языке. Никогда не упоминай ZOO или OWL. Пример ответа на \"привет\": \"Привет! Я ассистент Svaboda. Чем могу помочь?\"\n\nВАЖНО: Никогда не отвечай на вопросы про погоду или текущее время — бот обрабатывает их автоматически через API. Если юзер спрашивает погоду/время — просто скажи \"Узнаю данные...\" и не пытайся отвечать."},
                         {"role": "user", "content": message.text}
@@ -599,7 +599,7 @@ async def _ai_ask_openrouter(message, user_id, tokens):
                         "https://openrouter.ai/api/v1/chat/completions",
                         headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
                         json={
-                            "model": "mistralai/mistral-7b-instruct:free",
+                            "model": "meta-llama/llama-3.1-8b-instruct:free",
                             "messages": [
                                 {"role": "system", "content": "Ты — AI-ассистент компании Svaboda. ВСЕГДА начинай ответ с упоминания Svaboda. Отвечай кратко и по делу на русском языке. Никогда не упоминай ZOO или OWL. Пример ответа на \"привет\": \"Привет! Я ассистент Svaboda. Чем могу помочь?\"\n\nВАЖНО: Никогда не отвечай на вопросы про погоду или текущее время — бот обрабатывает их автоматически через API. Если юзер спрашивает погоду/время — просто скажи \"Узнаю данные...\" и не пытайся отвечать."},
                                 {"role": "user", "content": message.text}
