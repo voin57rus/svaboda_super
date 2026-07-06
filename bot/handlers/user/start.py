@@ -418,7 +418,7 @@ async def cmd_buy_tokens(message: Message, state: FSMContext):
 
     page_text = page_row[0] if page_row and page_row[0] else (page_row[1] if page_row else None)
 
-    kb = InlineKeyboardMarkup(
+kb = InlineKeyboardMarkup(
     inline_keyboard=[[InlineKeyboardButton(text="📋 На главную", callback_data="start")]]
 )
 
