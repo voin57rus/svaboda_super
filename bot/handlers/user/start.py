@@ -326,7 +326,7 @@ async def cmd_ai_key(message: Message, state: FSMContext):
         key = f"{tariff}-{code}"
     elif '-' in args[1]:
         # Формат: /ai_key S-4t77755
-        key = args[1].strip().upper()
+        key = args[1].strip()
     else:
         await message.reply("❌ Неверный формат.\n\nИспользуйте: <code>/ai_key S-4t77755</code>\nили: <code>/ai_key S 4t77755</code>", parse_mode="HTML")
         return
