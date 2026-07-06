@@ -418,12 +418,14 @@ async def cmd_buy_tokens(message: Message, state: FSMContext):
 
     page_text = page_row[0] if page_row and page_row[0] else (page_row[1] if page_row else None)
 
-    
     if page_text:
     # Подставляем динамические данные (тариф, токены)
     tariff = (row[2] or 'не указан').upper()
     tokens = f"{row[1]:,}"
-    text = page_text.replace('{tariff}', tariff).replace('{tokens}', tokens)
+
+    text = str(page_text or "")
+
+    text = text.replace('{tariff}', tariff).replace('{tokens}', tokens)
 
     # Добавляем HTML-форматирование (в БД хранится чистый текст)
     text = text.replace('📸 После оплаты', '<b>📸 После оплаты</b>')
@@ -433,9 +435,9 @@ async def cmd_buy_tokens(message: Message, state: FSMContext):
         '📢 <a href="https://t.me/Answer_na_Questions">Канал поддержки</a>'
     )
 
-    # 🔥 ЗАЩИТА (единственное добавление)
-    text = str(text)
+    # 🔥 ЗАЩИТА ОТ СКРЫТЫХ СИМВОЛОВ
     text = text.replace('\u200d', '')
+    text = text.replace('\u200b', '')
 
 else:
     # Фоллбэк если нет в БД
@@ -445,7 +447,7 @@ else:
         f"🪙 Текущих токенов: <b>{row[1]:,}</b>\n\n"
         "• 5,000 токенов — 100₽\n"
         "• 10,000 токенов — 180₽\n"
-        "• 25,000 токенов — 400₽\n\n"
+        "• 25,000 токенов — 400₽\n"
         "• 50,000 токенов — 700₽\n\n"
         "🏦 Карта: <code>0000 0000 0000 0000</code>\n"
         "📸 После оплаты отправьте скрин админу."
@@ -454,6 +456,9 @@ else:
 kb = InlineKeyboardMarkup(
     inline_keyboard=[[InlineKeyboardButton(text="📋 На главную", callback_data="start")]]
 )
+
+# 🔥 финальная защита перед Telegram
+text = str(text)
 
 await message.answer(text, parse_mode="HTML", reply_markup=kb)
 
