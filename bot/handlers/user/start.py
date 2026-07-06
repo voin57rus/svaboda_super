@@ -418,9 +418,7 @@ async def cmd_buy_tokens(message: Message, state: FSMContext):
 
     page_text = page_row[0] if page_row and page_row[0] else (page_row[1] if page_row else None)
 
-kb = InlineKeyboardMarkup(
-    inline_keyboard=[[InlineKeyboardButton(text="📋 На главную", callback_data="start")]]
-)
+
 
 if page_text:
     tariff = (row[2] or 'не указан').upper()
@@ -433,6 +431,7 @@ if page_text:
         'https://t.me/Answer_na_Questions',
         '<a href="https://t.me/Answer_na_Questions">Канал поддержки</a>'
     )
+    await message.answer(text, parse_mode="HTML", reply_markup=kb)
 
 else:
     text = (
@@ -447,7 +446,9 @@ else:
         "📸 После оплаты отправьте скрин админу."
     )
 
-await message.answer(text, parse_mode="HTML", reply_markup=kb)
+
+kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="📋 На главную", callback_data="start")]])
+    await message.answer(text, parse_mode="HTML", reply_markup=kb)
 
 
 # /updatebot — обработка ДО ai_chat_handler (чтобы не попадал в AI)
