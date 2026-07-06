@@ -420,21 +420,23 @@ async def cmd_buy_tokens(message: Message, state: FSMContext):
 
     
     if page_text:
-    # Подставляем динамические данные (тариф, токены)
     tariff = (row[2] or 'не указан').upper()
     tokens = f"{row[1]:,}"
 
-    text = page_text.replace('{tariff}', tariff).replace('{tokens}', tokens)
+    text = page_text
 
-    # HTML форматирование (в БД хранится чистый текст)
-    text = text.replace('📸 После оплаты', '<b>📸 После оплаты</b>')
+    if text:
+        text = text.replace('{tariff}', tariff)
+        text = text.replace('{tokens}', tokens)
 
-    # ❌ УБРАЛИ:
-    # By Oleg
-    # Канал поддержки
+        text = text.replace('📸 После оплаты', '<b>📸 После оплаты</b>')
+        text = text.replace(' By Oleg', ' <b>By Oleg</b>')
+        text = text.replace(
+            '📢 Канал поддержки: https://t.me/Answer_na_Questions',
+            '📢 <a href="https://t.me/Answer_na_Questions">Канал поддержки</a>'
+        )
 
 else:
-    # Фоллбэк если нет в БД
     text = (
         "💰 <b>Пополнение токенов</b>\n\n"
         f"📦 Тариф: <b>{(row[2] or 'не указан').upper()}</b>\n"
@@ -448,9 +450,7 @@ else:
     )
 
 kb = InlineKeyboardMarkup(
-    inline_keyboard=[
-        [InlineKeyboardButton(text="📋 На главную", callback_data="start")]
-    ]
+    inline_keyboard=[[InlineKeyboardButton(text="📋 На главную", callback_data="start")]]
 )
 
 await message.answer(text, parse_mode="HTML", reply_markup=kb)
