@@ -83,8 +83,48 @@ async def protocol_amnezia_handler(callback: CallbackQuery, state: FSMContext):
 
 @router.callback_query(F.data == "protocol_xray")
 async def protocol_xray_handler(callback: CallbackQuery, state: FSMContext):
-    """Пользователь выбрал Xray — тот же flow что и VLESS."""
-    await protocol_vless_handler(callback, state)
+    """Пользователь выбрал Xray."""
+
+    await state.update_data(
+        protocol="xray"
+    )
+
+    from database.requests import get_all_tariffs
+    from bot.keyboards.user import tariff_select_kb
+
+    tariffs = get_all_tariffs(
+        include_hidden=False,
+        protocol="xray"
+    )
+
+    rub_tariffs = [
+        t for t in tariffs
+        if t.get("price_rub")
+        and t["price_rub"] > 0
+    ]
+
+    if not rub_tariffs:
+        await safe_edit_or_send(
+            callback.message,
+            "😔 <b>Нет доступных тарифов для Xray.</b>",
+            reply_markup=home_only_kb()
+        )
+        await callback.answer()
+        return
+
+
+    await safe_edit_or_send(
+        callback.message,
+        "💳 <b>Купить ключ (Xray WS + TLS)</b>\n\n"
+        "Выберите тариф:",
+        reply_markup=tariff_select_kb(
+            rub_tariffs,
+            back_callback="buy_key",
+            is_platega=True
+        )
+    )
+
+    await callback.answer()
 
 
 async def _admin_instant_key(callback: CallbackQuery, state: FSMContext, telegram_id: int, protocol: str):
