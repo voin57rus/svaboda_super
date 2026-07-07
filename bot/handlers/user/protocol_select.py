@@ -83,10 +83,10 @@ async def protocol_amnezia_handler(callback: CallbackQuery, state: FSMContext):
 
 @router.callback_query(F.data == "protocol_xray")
 async def protocol_xray_handler(callback: CallbackQuery, state: FSMContext):
-    """Пользователь выбрал Xray."""
 
     await state.update_data(
-        protocol="xray"
+        protocol="xray",
+        protocol_title="Xray WS + TLS"
     )
 
     from database.requests import get_all_tariffs
@@ -94,7 +94,7 @@ async def protocol_xray_handler(callback: CallbackQuery, state: FSMContext):
 
     tariffs = get_all_tariffs(
         include_hidden=False,
-        protocol="xray"
+        protocol="vless"
     )
 
     rub_tariffs = [
@@ -106,7 +106,7 @@ async def protocol_xray_handler(callback: CallbackQuery, state: FSMContext):
     if not rub_tariffs:
         await safe_edit_or_send(
             callback.message,
-            "😔 <b>Нет доступных тарифов для Xray.</b>",
+            "😔 <b>Нет доступных тарифов.</b>",
             reply_markup=home_only_kb()
         )
         await callback.answer()
