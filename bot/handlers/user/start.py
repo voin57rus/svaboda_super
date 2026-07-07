@@ -1,6 +1,5 @@
 import logging
 import asyncio
-import html
 from datetime import datetime
 from aiogram import Router, F
 from aiogram.types import Message, CallbackQuery, InlineKeyboardButton
@@ -478,13 +477,11 @@ async def cmd_buy_tokens(message: Message, state: FSMContext):
         # Подставляем динамические данные (тариф, токены)
         tariff = (row[2] or 'не указан').upper()
         tokens = f"{row[1]:,}"
-    
         text = page_text.replace('{tariff}', tariff).replace('{tokens}', tokens)
-        text = html.unescape(text)
         # Добавляем HTML-форматирование (в БД хранится чистый текст)
-        # text = text.replace('📸 После оплаты', '<b>📸 После оплаты</b>')
-        # text = text.replace(' Byr Olegrr', ' <b>Byr Olegrr</b>')
-        # text = text.replace('📢 Канал поддержки: https://t.me/Answer_na_Questions', '📢 <a href="https://t.me/Answer_na_Questions">Канал поддержки</a>')
+        text = text.replace('📸 После оплаты', '<b>📸 После оплаты')
+        text = text.replace(' By Oleg', ' <b>By Oleg</b>')
+        text = text.replace('📢 Канал поддержки: https://t.me/Answer_na_Questions', '📢 <a href="https://t.me/Answer_na_Questions">Канал поддержки</a>')
     else:
         # Фоллбэк если нет в БД
         text = (
@@ -634,7 +631,7 @@ async def _ai_ask_openrouter(message, user_id, tokens):
                 "https://openrouter.ai/api/v1/chat/completions",
                 headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
                 json={
-                    "model": "qwen/qwen-2.5-7b-instruct",
+                    "model": "poolside/laguna-m.1:free",
                     "messages": [
                         {"role": "system", "content": "Ты — AI-ассистент компании Svaboda. ВСЕГДА начинай ответ с упоминания Svaboda. Отвечай кратко и по делу на русском языке. Никогда не упоминай ZOO или OWL. Пример ответа на \"привет\": \"Привет! Я ассистент Svaboda. Чем могу помочь?\""},
                         {"role": "user", "content": message.text}
@@ -675,7 +672,7 @@ async def _ai_ask_openrouter(message, user_id, tokens):
                         "https://openrouter.ai/api/v1/chat/completions",
                         headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
                         json={
-                            "model": "qwen/qwen-2.5-7b-instruct",
+                            "model": "poolside/laguna-m.1:free",
                             "messages": [
                                 {"role": "system", "content": "Ты — AI-ассистент компании Svaboda. ВСЕГДА начинай ответ с упоминания Svaboda. Отвечай кратко и по делу на русском языке. Никогда не упоминай ZOO или OWL. Пример ответа на \"привет\": \"Привет! Я ассистент Svaboda. Чем могу помочь?\""},
                                 {"role": "user", "content": message.text}
