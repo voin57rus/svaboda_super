@@ -1,5 +1,6 @@
 import logging
 import asyncio
+import html
 from datetime import datetime
 from aiogram import Router, F
 from aiogram.types import Message, CallbackQuery, InlineKeyboardButton
@@ -478,10 +479,11 @@ async def cmd_buy_tokens(message: Message, state: FSMContext):
         tariff = (row[2] or 'не указан').upper()
         tokens = f"{row[1]:,}"
         text = page_text.replace('{tariff}', tariff).replace('{tokens}', tokens)
+        text = html.unescape(text)
         # Добавляем HTML-форматирование (в БД хранится чистый текст)
-        text = text.replace('📸 После оплаты', '<b>📸 После оплаты')
-        text = text.replace(' By Oleg', ' <b>By Oleg</b>')
-        text = text.replace('📢 Канал поддержки: https://t.me/Answer_na_Questions', '📢 <a href="https://t.me/Answer_na_Questions">Канал поддержки</a>')
+        # text = text.replace('📸 После оплаты', '<b>📸 После оплаты')
+        # text = text.replace(' By Oleg', ' <b>By Oleg</b>')
+        # text = text.replace('📢 Канал поддержки: https://t.me/Answer_na_Questions', '📢 <a href="https://t.me/Answer_na_Questions">Канал поддержки</a>')
     else:
         # Фоллбэк если нет в БД
         text = (
