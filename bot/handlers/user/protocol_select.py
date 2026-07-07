@@ -41,19 +41,41 @@ async def protocol_vless_handler(callback: CallbackQuery, state: FSMContext):
         await _admin_instant_key(callback, state, callback.from_user.id, "vless")
         return
 
-    # Обычный пользователь — показываем тарифы только для VLESS
-    await state.update_data(protocol="vless")
+# Обычный пользователь — показываем тарифы только для VLESS
+await state.update_data(
+    protocol="vless",
+    protocol_title="VLESS Reality"
+)
 
-    from database.requests import get_all_tariffs
-    from bot.keyboards.user import tariff_select_kb
-    tariffs = get_all_tariffs(include_hidden=False, protocol="vless")
-    rub_tariffs = [t for t in tariffs if t.get('price_rub') and t['price_rub'] > 0]
-    if not rub_tariffs:
-        await safe_edit_or_send(callback.message, '😔 <b>Нет доступных тарифов для VLESS.</b>', reply_markup=home_only_kb())
-        await callback.answer()
-        return
-    await safe_edit_or_send(callback.message, '💳 <b>Купить ключ (VLESS)</b>Выберите тариф:', reply_markup=tariff_select_kb(rub_tariffs, back_callback='buy_key', is_platega=True))
+from database.requests import get_all_tariffs
+from bot.keyboards.user import tariff_select_kb
+
+tariffs = get_all_tariffs(include_hidden=False, protocol="vless")
+rub_tariffs = [t for t in tariffs if t.get('price_rub') and t['price_rub'] > 0]
+
+if not rub_tariffs:
+    await safe_edit_or_send(
+        callback.message,
+        '😔 <b>Нет доступных тарифов для VLESS.</b>',
+        reply_markup=home_only_kb()
+    )
     await callback.answer()
+    return
+
+data = await state.get_data()
+title = data.get("protocol_title", "VLESS")
+
+await safe_edit_or_send(
+    callback.message,
+    f'💳 <b>Купить ключ ({title})</b>\n\nВыберите тариф:',
+    reply_markup=tariff_select_kb(
+        rub_tariffs,
+        back_callback='buy_key',
+        is_platega=True
+    )
+)
+
+await callback.answer()
 
 
 @router.callback_query(F.data == "protocol_wireguard")
