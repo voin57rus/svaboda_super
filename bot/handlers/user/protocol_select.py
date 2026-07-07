@@ -53,7 +53,7 @@ async def protocol_vless_handler(callback: CallbackQuery, state: FSMContext):
         await safe_edit_or_send(callback.message, '😔 <b>Нет доступных тарифов для VLESS.</b>', reply_markup=home_only_kb())
         await callback.answer()
         return
-    await safe_edit_or_send(callback.message, '💳 <b>Купить ключ (VLESS)</b>Выберите тариф:', reply_markup=tariff_select_kb(rub_tariffs, back_callback='buy_key', is_platega=True))
+    await safe_edit_or_send(callback.message, '💳 <b>Купить ключ (VLESS)</b>\n\nВыберите тариф:', reply_markup=tariff_select_kb(rub_tariffs, back_callback='buy_key', is_platega=True))
     await callback.answer()
 
 
