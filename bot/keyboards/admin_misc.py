@@ -50,6 +50,13 @@ def admin_main_menu_kb() -> InlineKeyboardMarkup:
     builder.row(
         InlineKeyboardButton(text='🔑 Бесплатный ключ', callback_data='admin_free_key')
     )
+    builder.row(
+        InlineKeyboardButton(
+            text='🤖 svaboda Admin',
+            callback_data='admin_svaboda',
+            style='primary',
+       )
+    )
     builder.row(home_button())
     return builder.as_markup()
 
