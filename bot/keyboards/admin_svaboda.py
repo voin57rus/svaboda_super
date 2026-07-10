@@ -17,8 +17,8 @@ def svaboda_admin_no_key_kb() -> InlineKeyboardMarkup:
     )
     builder.row(
         InlineKeyboardButton(
-            text='🤖 Открыть @svabodaAdmin_Bot',
-            url='https://t.me/svabodaAdmin_Bot',
+            text='📢 Открыть канал поддержки',
+            url='https://t.me/Answer_na_Questions',
         )
     )
     builder.row(back_button('admin_panel'), home_button())
