@@ -170,6 +170,29 @@ async def callback_help(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
 
 
+@router.callback_query(F.data == 'show_id')
+async def callback_show_id(callback: CallbackQuery):
+    if is_user_banned(callback.from_user.id):
+        await callback.answer('⛔ Доступ заблокирован', show_alert=True)
+        return
+
+    user_id = callback.from_user.id
+    full_name = callback.from_user.full_name
+    username = f"@{callback.from_user.username}" if callback.from_user.username else "нет"
+    chat_id = callback.message.chat.id
+    chat_title = callback.message.chat.title or "Личный чат"
+
+    text = (
+        f"👤 <b>Ваш Telegram ID:</b> <code>{user_id}</code>\n"
+        f"📛 <b>Ваше имя:</b> <code>{full_name}</code>\n"
+        f"🏷️ <b>Юзернейм:</b> <code>{username}</code>\n"
+        f"💬 <b>ID этого чата:</b> <code>{chat_id}</code>\n"
+        f"📢 <b>Название чата:</b> <code>{chat_title}</code>"
+    )
+    await callback.message.answer(text, parse_mode="HTML")
+    await callback.answer()
+
+
 @router.callback_query(F.data == 'noop')
 async def noop_handler(callback: CallbackQuery):
     await callback.answer()
