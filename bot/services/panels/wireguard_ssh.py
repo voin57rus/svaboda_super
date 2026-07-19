@@ -12,9 +12,9 @@ from typing import Dict, Any
 logger = logging.getLogger(__name__)
 
 WG_INTERFACE = "wg0"
-SERVER_ENDPOINT = "87.120.165.232:31497"
+SERVER_ENDPOINT = "87.120.165.232:47981"
 DNS = "77.88.8.8"
-SERVER_PUBLIC_KEY = "6je5qU/tkMt1oSGtbc91ZrsYvDq7NsQFxmHRPEhN5Bg="
+SERVER_PUBLIC_KEY = "T/OjcoQddUk3x+rilRh7/R3h90n7zc+izXX49ivwvRU="
 SERVER_PSK = "VWStyuYRXZu6dwmrS7FkmYDNGX8MuY8ze7DoinYuiLs="
 DOCKER_CONTAINER = "amnezia-awg"
 

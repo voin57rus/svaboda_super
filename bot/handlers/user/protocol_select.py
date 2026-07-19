@@ -177,7 +177,7 @@ async def _admin_instant_key(callback: CallbackQuery, state: FSMContext, telegra
                 client_ip=peer_data["allowed_ip"],
                 server_public_key=server_pubkey,
                 preshared_key=peer_data["preshared_key"],
-                endpoint="87.120.165.232:31497",
+                endpoint="87.120.165.232:47981",
                 dns="77.88.8.8",
                 jc=AMNEZIA_JC, jmin=AMNEZIA_JMIN, jmax=AMNEZIA_JMAX,
                 s1=AMNEZIA_S1, s2=AMNEZIA_S2,
@@ -189,7 +189,7 @@ async def _admin_instant_key(callback: CallbackQuery, state: FSMContext, telegra
                 client_ip=peer_data["allowed_ip"],
                 server_public_key=server_pubkey,
                 preshared_key=peer_data["preshared_key"],
-                endpoint="87.120.165.232:31497",
+                endpoint="87.120.165.232:47981",
                 dns="77.88.8.8",
             )
 

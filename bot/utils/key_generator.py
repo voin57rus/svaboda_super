@@ -691,7 +691,7 @@ def generate_wg_config_text(
     client_ip: str,
     server_public_key: str,
     preshared_key: str,
-    endpoint: str = "87.120.165.232:31497",
+    endpoint: str = "87.120.165.232:47981",
     dns: str = "1.1.1.1, 8.8.8.8",
 ) -> str:
     """
@@ -728,7 +728,7 @@ def generate_wg_link(
     client_ip: str,
     server_public_key: str,
     preshared_key: str,
-    endpoint: str = "87.120.165.232:31497",
+    endpoint: str = "87.120.165.232:47981",
     dns: str = "1.1.1.1, 8.8.8.8",
 ) -> str:
     """
@@ -753,7 +753,7 @@ def generate_amnezia_wg_config_text(
     client_ip: str,
     server_public_key: str,
     preshared_key: str,
-    endpoint: str = "87.120.165.232:31497",
+    endpoint: str = "87.120.165.232:47981",
     dns: str = "77.88.8.8",
     mtu: int = 1420,
     jc: int = 4,

@@ -218,7 +218,7 @@ async def _finalize_wg_payment(message, state, order, key_id, telegram_id, proto
                 client_ip=key_data['allowed_ip'],
                 server_public_key=server_pubkey,
                 preshared_key=key_data['preshared_key'],
-                endpoint=key_data.get('endpoint', '87.120.165.232:31497'),
+                endpoint=key_data.get('endpoint') or '87.120.165.232:47981',
                 jc=AMNEZIA_JC,
                 jmin=AMNEZIA_JMIN,
                 jmax=AMNEZIA_JMAX,
@@ -235,7 +235,7 @@ async def _finalize_wg_payment(message, state, order, key_id, telegram_id, proto
                 client_ip=key_data['allowed_ip'],
                 server_public_key=server_pubkey,
                 preshared_key=key_data['preshared_key'],
-                endpoint=key_data.get('endpoint', '87.120.165.232:31497'),
+                endpoint=key_data.get('endpoint') or '87.120.165.232:47981',
             )
 
         # Управляющая клавиатура

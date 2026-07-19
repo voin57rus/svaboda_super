@@ -33,18 +33,19 @@ AMNEZIA_ENABLED = True
 
 # AmneziaWG параметры для генерации конфига клиента
 # (Keenetic игнорирует неизвестные поля, но Amnezia-клиент их использует)
-AMNEZIA_JC = 4
+# ЗНАЧЕНИЯ СИНХРОНИЗИРОВАНЫ С РЕАЛЬНЫМ СЕРВЕРОМ (wg0.conf, wg show)
+AMNEZIA_JC = 5
 AMNEZIA_JMIN = 10
 AMNEZIA_JMAX = 50
-AMNEZIA_S1 = 81
-AMNEZIA_S2 = 50
-AMNEZIA_H1 = 908807685
-AMNEZIA_H2 = 1752927911
-AMNEZIA_H3 = 856383365
-AMNEZIA_H4 = 2120087132
+AMNEZIA_S1 = 47
+AMNEZIA_S2 = 40
+AMNEZIA_H1 = 64815637
+AMNEZIA_H2 = 1737965698
+AMNEZIA_H3 = 498228547
+AMNEZIA_H4 = 966600572
 
 # Публичный ключ сервера (для AmneziaWG клиентов)
-AMNEZIA_SERVER_PUBLIC_KEY = "05jVes6aр3a7O6NJwTVU1PS/R8/tr39XLRURs+ahMRk="
+AMNEZIA_SERVER_PUBLIC_KEY = "T/OjcoQddUk3x+rilRh7/R3h90n7zc+izXX49ivwvRU="
 
 
 async def create_peer(amnezia: bool = False) -> Dict[str, Any]:
