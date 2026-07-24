@@ -182,12 +182,17 @@ async def callback_show_id(callback: CallbackQuery):
     chat_id = callback.message.chat.id
     chat_title = callback.message.chat.title or "Личный чат"
 
+    # Получаем имя бота
+    bot_me = await callback.message.bot.get_me()
+    bot_name = bot_me.full_name or f"@{bot_me.username}"
+
     text = (
         f"👤 <b>Ваш Telegram ID:</b> <code>{user_id}</code>\n"
         f"📛 <b>Ваше имя:</b> <code>{full_name}</code>\n"
         f"🏷️ <b>Юзернейм:</b> <code>{username}</code>\n"
         f"💬 <b>ID этого чата:</b> <code>{chat_id}</code>\n"
-        f"📢 <b>Название чата:</b> <code>{chat_title}</code>"
+        f"📢 <b>Название чата:</b> <code>{chat_title}</code>\n"
+        f"🤖 <b>Название бота:</b> <code>{bot_name}</code>"
     )
     await callback.message.answer(text, parse_mode="HTML")
     await callback.answer()
