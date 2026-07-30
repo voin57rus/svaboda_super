@@ -33,10 +33,6 @@ def main_menu_kb(is_admin: bool = False, show_trial: bool = False, show_referral
             InlineKeyboardButton(text="🔗 Реферальная ссылка", callback_data="referral_system"),
         )
     
-    builder.row(
-        InlineKeyboardButton(text="ℹ️ Справка", callback_data="help"),
-        InlineKeyboardButton(text="🔍 Узнать ID", callback_data="show_id")
-    )
     if is_admin:
         builder.row(
             InlineKeyboardButton(text="⚙️ Админ-панель", callback_data="admin_panel")

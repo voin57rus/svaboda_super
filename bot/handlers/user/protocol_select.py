@@ -167,25 +167,11 @@ async def _admin_instant_key(callback: CallbackQuery, state: FSMContext, telegra
             from bot.services.panels.wireguard_ssh import get_server_public_key
             server_pubkey = await get_server_public_key()
 
-        if is_amnezia:
-            from bot.services.panels.wireguard_service import (
-                AMNEZIA_JC, AMNEZIA_JMIN, AMNEZIA_JMAX,
-                AMNEZIA_S1, AMNEZIA_S2, AMNEZIA_H1, AMNEZIA_H2, AMNEZIA_H3, AMNEZIA_H4,
-            )
-            wg_config = generate_amnezia_wg_config_text(
-                client_private_key=peer_data["private_key"],
-                client_ip=peer_data["allowed_ip"],
-                server_public_key=server_pubkey,
-                preshared_key=peer_data["preshared_key"],
-                endpoint="87.120.165.232:47981",
-                dns="77.88.8.8",
-                jc=AMNEZIA_JC, jmin=AMNEZIA_JMIN, jmax=AMNEZIA_JMAX,
-                s1=AMNEZIA_S1, s2=AMNEZIA_S2,
-                h1=AMNEZIA_H1, h2=AMNEZIA_H2, h3=AMNEZIA_H3, h4=AMNEZIA_H4,
-            )
-        else:
+        # Panel API возвращает готовый конфиг
+        wg_config = peer_data.get("config", "")
+        if not wg_config:
             wg_config = generate_wg_config_text(
-                client_private_key=peer_data["private_key"],
+                client_private_key=peer_data.get("private_key", ""),
                 client_ip=peer_data["allowed_ip"],
                 server_public_key=server_pubkey,
                 preshared_key=peer_data["preshared_key"],

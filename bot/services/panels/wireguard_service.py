@@ -50,34 +50,19 @@ AMNEZIA_SERVER_PUBLIC_KEY = "T/OjcoQddUk3x+rilRh7/R3h90n7zc+izXX49ivwvRU="
 
 async def create_peer(amnezia: bool = False) -> Dict[str, Any]:
     """
-    Создаёт новый WireGuard / AmneziaWG пир на сервере.
-
-    Args:
-        amnezia: True для AmneziaWG (добавляет параметры обфускации)
-
-    Returns:
-        dict: {
-            'private_key': str,
-            'public_key': str,
-            'preshared_key': str,
-            'allowed_ip': str,
-            'endpoint': str,
-            'dns': str,
-            'is_amnezia': bool,
-            'amnezia_jc': int (если amnezia=True),
-            'amnezia_jmin': int,
-            'amnezia_jmax': int,
-            'amnezia_s1': int,
-            'amnezia_s2': int,
-            'server_public_key': str,
-        }
+    Создаёт новый WireGuard / AmneziaWG пир через panel API.
     """
+    import uuid
+    from bot.services.panels.wireguard_ssh import add_peer
+
     try:
-        if amnezia:
-            peer_data = await _create_amnezia_peer()
-        else:
-            peer_data = await create_wg_peer()
-        logger.info(f"WG peer created: IP={peer_data['allowed_ip']}, amnezia={amnezia}")
+        client_name = f"Svaboda {uuid.uuid4().hex[:8]}"
+        peer_data = await add_peer(client_name)
+        peer_data["is_amnezia"] = True
+        peer_data["endpoint"] = "87.120.165.232:47981"
+        peer_data["dns"] = "8.8.4.4, 9.9.9.9"
+        peer_data["server_public_key"] = "T/OjcoQddUk3x+rilRh7/R3h90n7zc+izXX49ivwvRU="
+        logger.info(f"WG peer created via panel: IP={peer_data['allowed_ip']}")
         return peer_data
     except Exception as e:
         logger.error(f"create_peer error: {e}")

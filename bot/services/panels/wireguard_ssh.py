@@ -87,46 +87,49 @@ async def get_next_ip() -> str:
     raise RuntimeError("No free IP")
 
 
-async def add_peer(public_key: str, allowed_ip: str) -> bool:
-    """Добавляет пир в AmneziaWG и регистрирует клиента."""
-    logger.info(f"ADD_PEER START key={public_key[:20]} ip={allowed_ip}")
+async def add_peer(client_name: str) -> dict:
+    """Добавляет пир через bandju-panel API."""
+    logger.info(f"ADD_PEER START name={client_name}")
 
-    psk_file = f"/tmp/psk_{public_key[:8]}"
-
-    _docker(f"sh -c 'echo \"{SERVER_PSK}\" > {psk_file}'")
-
-    # Добавляем peer в работающий интерфейс
-    _docker(
-        f"sh -c 'wg set {WG_INTERFACE} peer {public_key} "
-        f"allowed-ips {allowed_ip}/32 preshared-key {psk_file}'"
-    )
-
-    # Добавляем в конфиг Amnezia (через docker cp, т.к. heredoc не работает)
-    wg_conf = _docker(f"cat /opt/amnezia/awg/wg0.conf")
-    wg_conf += f"\n\n[Peer]\nPublicKey = {public_key}\nPresharedKey = {SERVER_PSK}\nAllowedIPs = {allowed_ip}/32\n"
-    _docker_write_file("/opt/amnezia/awg/wg0.conf", wg_conf)
-
-    # Регистрируем клиента Amnezia (python3 нет в контейнере, делаем всё с хоста)
-    creation_date = datetime.now().strftime('%a %b %d %H:%M:%S %Y')
-    ct_path = "/opt/amnezia/awg/clientsTable"
-    # Читаем текущий clientsTable из контейнера
-    ct_raw = _docker(f"cat {ct_path}")
+    import subprocess
+    script = f"""
+import sys, json
+sys.path.insert(0, "/app")
+from modules import amneziawg
+result = amneziawg.add_client("{client_name}", "{DOCKER_CONTAINER}")
+print(json.dumps(result))
+"""
+    # Write script to temp file and execute in panel container
+    import tempfile, os
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as f:
+        f.write(script)
+        tmp_path = f.name
     try:
-        ct_data = json.loads(ct_raw) if ct_raw else []
-    except Exception:
-        ct_data = []
-    ct_data.append({
-        "clientId": public_key,
-        "userData": {
-            "clientName": f"Svaboda {allowed_ip}",
-            "creationDate": creation_date
-        }
-    })
-    # Пишем обратно в контейнер через docker cp
-    ct_content = json.dumps(ct_data, indent=4)
-    _docker_write_file(ct_path, ct_content)
+        full_cmd = f"docker cp {tmp_path} bandju-panel:/tmp/wg_add.py && docker exec bandju-panel python3 /tmp/wg_add.py"
+        result = subprocess.run(full_cmd, shell=True, capture_output=True, text=True, timeout=30)
+        os.unlink(tmp_path)
+    except Exception as e:
+        os.unlink(tmp_path)
+        raise RuntimeError(f"Panel API error: {e}")
 
-    _docker(f"rm -f {psk_file}")
+    if result.returncode != 0:
+        raise RuntimeError(f"Panel API failed: {result.stderr}")
+
+    data = json.loads(result.stdout)
+    if not data.get("ok"):
+        raise RuntimeError(data.get("error", "Unknown panel error"))
+
+    client = data["client"]
+    config = data["config"]
+
+    return {
+        "private_key": None,  # In config text
+        "public_key": client["public_key"],
+        "preshared_key": client["preshared_key"],
+        "allowed_ip": client["ip"],
+        "config": config,
+        "client_name": client["name"],
+    }
 
     logger.info(f"Peer added: {public_key[:20]}... IP={allowed_ip}")
     return True

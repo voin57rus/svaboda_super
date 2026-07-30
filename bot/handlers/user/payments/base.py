@@ -212,30 +212,16 @@ async def _finalize_wg_payment(message, state, order, key_id, telegram_id, proto
 
         # Генерируем конфиг в зависимости от протокола
         is_amnezia = protocol == "amnezia"
-        if is_amnezia:
-            wg_config = generate_amnezia_wg_config_text(
-                client_private_key=key_data['private_key'],
-                client_ip=key_data['allowed_ip'],
-                server_public_key=server_pubkey,
-                preshared_key=key_data['preshared_key'],
-                endpoint=key_data.get('endpoint') or '87.120.165.232:47981',
-                jc=AMNEZIA_JC,
-                jmin=AMNEZIA_JMIN,
-                jmax=AMNEZIA_JMAX,
-                s1=AMNEZIA_S1,
-                s2=AMNEZIA_S2,
-                h1=AMNEZIA_H1,
-                h2=AMNEZIA_H2,
-                h3=AMNEZIA_H3,
-                h4=AMNEZIA_H4,
-            )
-        else:
+        # Panel API возвращает готовый конфиг
+        wg_config = key_data.get('config_text', '')
+        if not wg_config:
             wg_config = generate_wg_config_text(
-                client_private_key=key_data['private_key'],
+                client_private_key=key_data.get('private_key', ''),
                 client_ip=key_data['allowed_ip'],
                 server_public_key=server_pubkey,
                 preshared_key=key_data['preshared_key'],
                 endpoint=key_data.get('endpoint') or '87.120.165.232:47981',
+                dns="77.88.8.8",
             )
 
         # Управляющая клавиатура

@@ -558,6 +558,7 @@ async def edit_texts_menu(callback: CallbackQuery, state: FSMContext):
     builder = InlineKeyboardBuilder()
     
     builder.row(InlineKeyboardButton(text="📝 Главная страница", callback_data="edit_text:main"))
+    builder.row(InlineKeyboardButton(text="📝 Справка (текст)", callback_data="edit_text:help"))
     builder.row(InlineKeyboardButton(text="📝 Справка (название кнопки)", callback_data="edit_text:help_btn_label"))
     builder.row(InlineKeyboardButton(text="📝 Инфо (текст)", callback_data="edit_text:info"))
     builder.row(InlineKeyboardButton(text="📝 Текст перед оплатой", callback_data="edit_text:prepayment"))
