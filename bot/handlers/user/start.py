@@ -60,12 +60,10 @@ def _build_tariff_text() -> str:
     )
     crypto_enabled = is_crypto_configured()
     stars_enabled = is_stars_enabled()
-    cards_enabled = is_cards_enabled()
-    yookassa_qr_enabled = is_yookassa_qr_configured()
-    wata_enabled = is_wata_configured()
-    platega_enabled = is_platega_configured()
-    cardlink_enabled = is_cardlink_configured()
-    demo_enabled = is_demo_payment_enabled()
+    # Принудительно включаем отображение всех цен
+    crypto_enabled = True
+    stars_enabled = True
+    cards_enabled = True
     tariffs = get_all_tariffs()
     if not tariffs:
         return ''
@@ -99,10 +97,9 @@ def _build_tariff_text() -> str:
         if trial_tariff_id and tariff['id'] == trial_tariff_id:
             continue
         prices = []
-        # Доллары убрали
-        if stars_enabled or True:
+        if stars_enabled and tariff.get('price_stars', 0) >= 0:
             prices.append(f"{tariff['price_stars']} ⭐")
-        if True:
+        if tariff.get('price_rub', 0) >= 0:
             prices.append(f"{int(tariff['price_rub'])} ₽")
         price_display = ' / '.join(prices) if prices else 'Цена не установлена'
         
