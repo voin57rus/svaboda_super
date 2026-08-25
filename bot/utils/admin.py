@@ -1,5 +1,5 @@
-from config import ADMIN_IDS
+from database.db_settings import get_admin_ids
 
 def is_admin(user_id: int) -> bool:
-    """Проверяет, является ли пользователь администратором."""
-    return user_id in ADMIN_IDS
+    """Проверяет, является ли пользователь администратором (из БД)."""
+    return user_id in get_admin_ids()

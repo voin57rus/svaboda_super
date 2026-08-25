@@ -36,19 +36,23 @@ def admin_main_menu_kb() -> InlineKeyboardMarkup:
     """Главное меню админ-панели."""
     builder = InlineKeyboardBuilder()
     builder.row(
-        InlineKeyboardButton(text='🖥️ Сервера', callback_data='admin_servers'),
-        InlineKeyboardButton(text='💳 Оплаты', callback_data='admin_payments')
+        InlineKeyboardButton(text='📋 Тарифы', callback_data='admin_tariffs'),
+        InlineKeyboardButton(text='🖥️ Сервера', callback_data='admin_servers')
     )
     builder.row(
-        InlineKeyboardButton(text='👥 Пользователи', callback_data='admin_users'),
-        InlineKeyboardButton(text='📢 Рассылка', callback_data='admin_broadcast')
+        InlineKeyboardButton(text='💳 Оплаты', callback_data='admin_payments'),
+        InlineKeyboardButton(text='👥 Пользователи', callback_data='admin_users')
     )
     builder.row(
-        InlineKeyboardButton(text='⚙️ Настройки бота', callback_data='admin_bot_settings'),
-        InlineKeyboardButton(text='📥 Скачать логи', callback_data='admin_logs_menu')
+        InlineKeyboardButton(text='📢 Рассылка', callback_data='admin_broadcast'),
+        InlineKeyboardButton(text='⚙️ Настройки бота', callback_data='admin_bot_settings')
     )
     builder.row(
+        InlineKeyboardButton(text='📥 Скачать логи', callback_data='admin_logs_menu'),
         InlineKeyboardButton(text='🔑 Бесплатный ключ', callback_data='admin_free_key')
+    )
+    builder.row(
+        InlineKeyboardButton(text='👨‍💼 Управление админами', callback_data='admin_manage_admins')
     )
     builder.row(
         InlineKeyboardButton(

@@ -1385,18 +1385,18 @@ async def admin_ai_access_menu(callback: CallbackQuery, state: FSMContext):
     if not is_admin(callback.from_user.id):
         await callback.answer("⛔ Доступ запрещён", show_alert=True)
         return
-    
+
     import sqlite3
     from aiogram.utils.keyboard import InlineKeyboardBuilder
-    
+
     conn = sqlite3.connect('database/vpn_bot.db')
     c = conn.cursor()
     c.execute("SELECT telegram_id, username, ai_access, ai_tokens, ai_key FROM users WHERE ai_access=1 ORDER BY id DESC LIMIT 20")
     rows = c.fetchall()
     conn.close()
-    
+
     builder = InlineKeyboardBuilder()
-    
+
     if rows:
         text = "🤖 <b>Пользователи с AI-доступом:</b>\n\n"
         for row in rows:
@@ -1404,14 +1404,80 @@ async def admin_ai_access_menu(callback: CallbackQuery, state: FSMContext):
             text += f"• <code>{tg_id}</code> @{username or '—'} | 💰 {ai_tok} токенов | 🔑 {ai_k or '—'}\n"
     else:
         text = "🤖 <b>Управление AI-доступом</b>\n\nПока нет пользователей с AI-доступом."
-    
+
     builder.row(InlineKeyboardButton(text="🔑 Выдача AI-ключа", callback_data="edit_text:ai_key_instructions"))
     builder.row(InlineKeyboardButton(text="💰 Пополнить токены", callback_data="admin_ai_add_tokens"))
     builder.row(InlineKeyboardButton(text="🔑 Генерация ключа", callback_data="admin_ai_give_key"))
+    builder.row(InlineKeyboardButton(text="🤖 Настройка AI-тарифов", callback_data="admin_ai_tariffs_settings"))
     builder.row(InlineKeyboardButton(text="⬅️ Назад", callback_data="admin_edit_texts"))
-    
+
     await safe_edit_or_send(callback.message, text, reply_markup=builder.as_markup())
     await callback.answer()
+
+
+# ============================================================================
+# НАСТРОЙКА AI-ТАРИФОВ
+# ============================================================================
+
+@router.callback_query(F.data == "admin_ai_tariffs_settings")
+async def admin_ai_tariffs_settings(callback: CallbackQuery, state: FSMContext):
+    """Меню управления AI-тарифами (вкл/выкл по отдельности)."""
+    if not is_admin(callback.from_user.id):
+        await callback.answer("⛔ Доступ запрещён", show_alert=True)
+        return
+
+    from database.db_settings import is_ai_standard_enabled, is_ai_premium_enabled, is_ai_vip_enabled, set_setting
+    from aiogram.utils.keyboard import InlineKeyboardBuilder
+
+    std_status = "🟢 Вкл" if is_ai_standard_enabled() else "🔴 Выкл"
+    prem_status = "🟢 Вкл" if is_ai_premium_enabled() else "🔴 Выкл"
+    vip_status = "🟢 Вкл" if is_ai_vip_enabled() else "🔴 Выкл"
+
+    builder = InlineKeyboardBuilder()
+    builder.row(InlineKeyboardButton(text=f"🤖 AI Standard — {std_status}", callback_data="admin_ai_toggle:standard"))
+    builder.row(InlineKeyboardButton(text=f"🤖 AI Premium — {prem_status}", callback_data="admin_ai_toggle:premium"))
+    builder.row(InlineKeyboardButton(text=f"🤖 AI VIP — {vip_status}", callback_data="admin_ai_toggle:vip"))
+    builder.row(InlineKeyboardButton(text="⬅️ Назад", callback_data="admin_ai_access"))
+
+    await safe_edit_or_send(callback.message,
+        "🤖 <b>Настройка AI-тарифов</b>\n\n"
+        "Включайте или выключайте каждый тариф отдельно.\n"
+        "Когда тариф выключен — кнопка исчезает из главного меню пользователей.",
+        reply_markup=builder.as_markup()
+    )
+    await callback.answer()
+
+
+@router.callback_query(F.data.startswith("admin_ai_toggle:"))
+async def admin_ai_toggle_tariff(callback: CallbackQuery, state: FSMContext):
+    """Переключает видимость AI-тарифа."""
+    if not is_admin(callback.from_user.id):
+        await callback.answer("⛔ Доступ запрещён", show_alert=True)
+        return
+
+    tariff = callback.data.split(":")[1]
+    from database.db_settings import get_setting, set_setting
+
+    key_map = {
+        'standard': 'ai_standard_enabled',
+        'premium': 'ai_premium_enabled',
+        'vip': 'ai_vip_enabled',
+    }
+
+    if tariff not in key_map:
+        await callback.answer("❌ Неизвестный тариф", show_alert=True)
+        return
+
+    setting_key = key_map[tariff]
+    current = get_setting(setting_key, '1') == '1'
+    new_value = '0' if current else '1'
+    set_setting(setting_key, new_value)
+
+    status_text = "включён ✅" if new_value == '1' else "выключен ❌"
+    await callback.answer(f"AI {tariff.capitalize()} {status_text}")
+
+    # Обновляем меню
+    await admin_ai_tariffs_settings(callback, state)
 
 
 # ============================================================================

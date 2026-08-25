@@ -22,6 +22,7 @@ def bot_settings_kb(current_mode: str = 'subscription') -> InlineKeyboardMarkup:
     builder.row(InlineKeyboardButton(text='✏️ Изменить тексты', callback_data='admin_edit_texts'))
     builder.row(InlineKeyboardButton(text='🔗 Реферальная система', callback_data='admin_referral'))
     builder.row(InlineKeyboardButton(text='🔑 AI API ключ', callback_data='admin_ai_key'))
+    builder.row(InlineKeyboardButton(text='🤖 Управление AI', callback_data='admin_manage_ai'))
     builder.row(InlineKeyboardButton(text='🛑 Остановить бота', callback_data='admin_stop_bot'))
     builder.row(back_button('admin_panel'), home_button())
     return builder.as_markup()

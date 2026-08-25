@@ -1,159 +1,4 @@
-import logging
-import asyncio
-import html
-from datetime import datetime
-from aiogram import Router, F
-from aiogram.types import Message, CallbackQuery, InlineKeyboardButton
-from aiogram.filters import Command, CommandObject, StateFilter
-from aiogram.fsm.context import FSMContext
-from aiogram.fsm.state import State, StatesGroup
-from aiogram.exceptions import TelegramForbiddenError
-from config import ADMIN_IDS
-from database.requests import get_or_create_user, is_user_banned, get_setting, is_referral_enabled, get_user_by_referral_code, set_user_referrer
-from bot.utils.text import escape_html, safe_edit_or_send
-
-
-class AiActivation(StatesGroup):
-    waiting_for_key = State()
-
-
-logger = logging.getLogger(__name__)
-router = Router()
-
-TARIFF_NAMES_RU = {'standard': 'S', 'premium': 'P', 'vip': 'V'}
-
-
-def _get_ai_tariff_user_text(tariff_name: str, price: int, tokens: int) -> str:
-    """Получает текст AI тарифа для юзера из pages (ai_tariff_user_text_s/p/v)."""
-    import sqlite3
-    # tariff_name приходит как 'S' | 'P' | 'V' (из TARIFF_NAMES_RU)
-    tmap = {'S': 's', 'P': 'p', 'V': 'v', 'standard': 's', 'premium': 'p', 'vip': 'v'}
-    tkey = tmap.get(tariff_name, tariff_name.lower())
-    page_key = f'ai_tariff_user_text_{tkey}'
-
-    conn = sqlite3.connect('database/vpn_bot.db')
-    c = conn.cursor()
-    c.execute("SELECT text_custom, text_default FROM pages WHERE page_key=?", (page_key,))
-    row = c.fetchone()
-    conn.close()
-    text = row[0] if row and row[0] else (row[1] if row else '')
-    if not text:
-        # Fallback если текст не задан
-        text = (
-            f"🤖 <b>AI-тариф: {tariff_name}</b>\n\n"
-            f"💰 <b>Цена:</b> {price} ₽\n"
-            f"🪙 <b>Токенов:</b> {tokens:,}\n\n"
-            "🏦 <b>Реквизиты для оплаты:</b>\n"
-            "├ Карта: <code>0000 0000 0000 0000</code>\n"
-            "├ Получатель: Oleg_57rus\n"
-            f"└ Комментарий: AI {tariff_name}\n\n"
-            "🔑 Или введите ключ: /ai_key <ключ>"
-        )
-    return text
-
-
-def _build_tariff_text() -> str:
-    from database.requests import (
-        get_all_tariffs, is_crypto_configured, is_stars_enabled,
-        is_cards_enabled, is_yookassa_qr_configured, is_demo_payment_enabled,
-        is_wata_configured, is_platega_configured, is_cardlink_configured,
-    )
-    crypto_enabled = is_crypto_configured()
-    stars_enabled = is_stars_enabled()
-    cards_enabled = is_cards_enabled()
-    yookassa_qr_enabled = is_yookassa_qr_configured()
-    wata_enabled = is_wata_configured()
-    platega_enabled = is_platega_configured()
-    cardlink_enabled = is_cardlink_configured()
-    demo_enabled = is_demo_payment_enabled()
-    tariffs = get_all_tariffs()
-    if not tariffs:
-        return ''
-    # Эмодзи и названия протоколов
-    protocol_emoji = {
-        'vless': '🔵',
-        'wireguard': '🟢',
-        'amnezia': '🟠',
-        'xray': '🟣',
-    }
     
-    protocol_names = {
-        'vless': 'VLESS',
-        'wireguard': 'WireGuard',
-        'amnezia': 'AmneziaWG',
-        'xray': 'Xray (Vless+WS+TLS)',
-    }
-    
-    protocol_descriptions = {
-        'vless': 'быстрый и надёжный VPN',
-        'wireguard': 'быстрый и надёжный VPN',
-        'amnezia': 'обходит DPI и блокировки',
-        'xray': 'маскировка под HTTPS',
-    }
-    
-    lines = ['📋 <b>Тарифы:</b>']
-    from database.requests import get_trial_tariff_id
-    trial_tariff_id = get_trial_tariff_id()
-
-    for tariff in tariffs:
-        if trial_tariff_id and tariff['id'] == trial_tariff_id:
-            continue
-        prices = []
-        # Доллары убрали
-        if stars_enabled or True:
-            prices.append(f"{tariff['price_stars']} ⭐")
-        if True:
-            prices.append(f"{int(tariff['price_rub'])} ₽")
-        price_display = ' / '.join(prices) if prices else 'Цена не установлена'
-        
-        # Добавляем информацию о протоколе
-        protocol = tariff.get('protocol', 'vless').lower()
-        proto_emoji = protocol_emoji.get(protocol, '🔵')
-        proto_name = protocol_names.get(protocol, protocol.upper())
-        proto_desc = protocol_descriptions.get(protocol, '')
-        
-        lines.append(f"• {escape_html(tariff['name'])} — {price_display} — {proto_emoji} {proto_name} — {proto_desc}")
-    return '\n'.join(lines)
-
-
-async def _render_main_page(target, force_new: bool = False):
-    from bot.utils.page_renderer import render_page
-    from database.requests import is_trial_enabled, get_trial_tariff_id, has_used_trial, get_setting
-    from bot.utils.admin import is_admin
-    from database.db_settings import is_ai_standard_enabled, is_ai_premium_enabled, is_ai_vip_enabled
-
-    # Проверка включен ли AI в настройках
-    ai_enabled = get_setting('ai_enabled', '0') == '1'
-
-    # Индивидуальные настройки для каждого AI-тарифа
-    show_standard = ai_enabled and is_ai_standard_enabled()
-    show_premium = ai_enabled and is_ai_premium_enabled()
-    show_vip = ai_enabled and is_ai_vip_enabled()
-
-    if isinstance(target, CallbackQuery):
-        user_id = target.from_user.id
-    else:
-        user_id = target.from_user.id if hasattr(target, 'from_user') and target.from_user else 0
-    is_admin_user = is_admin(user_id)
-
-    tariff_text = '' if is_admin_user else _build_tariff_text()
-    show_trial = is_trial_enabled() and get_trial_tariff_id() is not None and (not has_used_trial(user_id))
-    show_referral = is_referral_enabled()
-
-    # Передаем visibility для AI кнопок
-    visibility = {
-        'btn_trial': show_trial, 
-        'btn_referral': show_referral,
-        'btn_ai_standard': show_standard,
-        'btn_ai_premium': show_premium,
-        'btn_ai_vip': show_vip,
-    }
-
-    text_replacements = {'%тарифы%': tariff_text, '%без_тарифов%': ''}
-    append_buttons = None
-    if is_admin_user:
-        append_buttons = [[InlineKeyboardButton(text="⚙️ Админ-панель", callback_data="admin_panel", style="success")]]
-    await render_page(target, page_key='main', visibility=visibility, text_replacements=text_replacements, append_buttons=append_buttons, force_new=force_new)
 
 
 @router.message(Command('start'), StateFilter('*'))
@@ -262,34 +107,21 @@ async def dismiss_msg_handler(callback: CallbackQuery):
     await callback.answer()
 
 
-@router.callback_query(F.data.startswith('ai_'))
-async def callback_ai_tariff(callback: CallbackQuery, state: FSMContext):
-    from database.requests import get_setting
-    # Проверка настройки AI
-    if get_setting('ai_enabled', '0') != '1':
-        await callback.answer("⛔ AI временно отключен администратором.", show_alert=True)
-        return
-
-    if callback.data == 'ai_standard':
-        await callback_ai_standard(callback, state)
-    elif callback.data == 'ai_premium':
-        await callback_ai_premium(callback, state)
-    elif callback.data == 'ai_vip':
-        await callback_ai_vip(callback, state)
-
-
+@router.callback_query(F.data == 'ai_standard')
 async def callback_ai_standard(callback: CallbackQuery, state: FSMContext):
     await _show_ai_tariff(callback, state, tariff='standard', price=300, tokens=10000)
     await state.set_state(AiActivation.waiting_for_key)
     await state.update_data(selected_tariff='standard')
 
 
+@router.callback_query(F.data == 'ai_premium')
 async def callback_ai_premium(callback: CallbackQuery, state: FSMContext):
     await _show_ai_tariff(callback, state, tariff='premium', price=400, tokens=20000)
     await state.set_state(AiActivation.waiting_for_key)
     await state.update_data(selected_tariff='premium')
 
 
+@router.callback_query(F.data == 'ai_vip')
 async def callback_ai_vip(callback: CallbackQuery, state: FSMContext):
     await _show_ai_tariff(callback, state, tariff='vip', price=550, tokens=50000)
     await state.set_state(AiActivation.waiting_for_key)
