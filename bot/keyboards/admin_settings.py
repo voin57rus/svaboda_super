@@ -43,14 +43,17 @@ def bot_mode_toggle_confirm_kb(target_mode: str) -> InlineKeyboardMarkup:
     )
     return builder.as_markup()
 
-def trial_settings_kb(enabled: bool, tariff_name: Optional[str]=None) -> InlineKeyboardMarkup:
+def trial_settings_kb(enabled: bool, selected_ids: List[int] = None, tariffs: List[Dict[str, Any]] = None) -> InlineKeyboardMarkup:
     """
-    Клавиатура управления пробной подпиской.
+    Клавиатура управления пробной подпиской с мультивыбором тарифов.
     
     Args:
         enabled: Включена ли пробная подписка
-        tariff_name: Название выбранного тарифа или None
+        selected_ids: Список ID выбранных тарифов
     """
+    if selected_ids is None:
+        selected_ids = []
+        
     builder = InlineKeyboardBuilder()
     if enabled:
         toggle_text = '🟢 Выключить'
@@ -58,29 +61,33 @@ def trial_settings_kb(enabled: bool, tariff_name: Optional[str]=None) -> InlineK
         toggle_text = '⚪ Включить'
     builder.row(InlineKeyboardButton(text=toggle_text, callback_data='admin_trial_toggle'))
     builder.row(InlineKeyboardButton(text='✏️ Изменить текст', callback_data='admin_trial_edit_text'))
-    tariff_label = tariff_name if tariff_name else 'не задан'
-    builder.row(InlineKeyboardButton(text=f'📋 Тариф: {tariff_label}', callback_data='admin_trial_select_tariff'))
+    tariff_label = 'не задан'
+    count = len([t for t in tariffs if t.get('id') in selected_ids]) if tariffs else len(selected_ids)
+    builder.row(InlineKeyboardButton(text=f'📋 Тарифы: {count} выбрано', callback_data='admin_trial_select_tariff'))
     builder.row(back_button('admin_panel'), home_button())
     return builder.as_markup()
 
-def trial_tariff_select_kb(tariffs: List[Dict[str, Any]], selected_id: Optional[int]=None) -> InlineKeyboardMarkup:
+def trial_tariff_select_kb(tariffs: List[Dict[str, Any]], selected_ids: List[int] = None) -> InlineKeyboardMarkup:
     """
-    Клавиатура выбора тарифа для пробной подписки.
-    
-    Отображает все тарифы кроме Admin Tariff.
-    
-    Args:
-        tariffs: Список всех тарифов (включая неактивные)
-        selected_id: ID текущего выбранного тарифа
+    Клавиатура выбора тарифов для пробной подписки с чекбоксами.
     """
+    if selected_ids is None:
+        selected_ids = []
     builder = InlineKeyboardBuilder()
+    
+    protocol_emoji = {'vless': '🔵', 'wireguard': '🟢', 'amnezia': '🟠', 'xray': '🟣'}
+    
     for tariff in tariffs:
         if tariff.get('name') == 'Admin Tariff':
             continue
-        status = '🟢' if tariff.get('is_active') else '🔴'
-        is_selected = tariff['id'] == selected_id
-        selected_mark = '🔘 ' if is_selected else '⚪ '
-        builder.row(InlineKeyboardButton(text=f"{selected_mark}{status} {tariff['name']} ({tariff['duration_days']} дн.)", callback_data=f"admin_trial_set_tariff:{tariff['id']}"))
+        protocol = tariff.get('protocol', 'vless').lower()
+        proto_emoji = protocol_emoji.get(protocol, '🔵')
+        is_selected = tariff['id'] in selected_ids
+        checkbox = '☑' if is_selected else '☐'
+        builder.row(InlineKeyboardButton(
+            text=f"{proto_emoji} {checkbox} {tariff['name']} ({tariff['duration_days']} дн.)", 
+            callback_data=f"admin_trial_set_tariff:{tariff['id']}"
+        ))
     builder.row(back_button('admin_trial'), home_button())
     return builder.as_markup()
 

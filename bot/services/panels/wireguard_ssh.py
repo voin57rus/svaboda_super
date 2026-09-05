@@ -153,18 +153,20 @@ async def create_wg_peer() -> Dict[str, Any]:
     logger.info("CREATE_WG_PEER START")
     kp = await generate_keypair()
     ip = await get_next_ip()
-    await add_peer(kp["public_key"], ip)
-
-    return {
+    # add_peer принимает только client_name, а не public_key и ip
+    client_name = f"Svaboda-{ip.replace('.', '-')}-{int(datetime.now().timestamp())}"
+    peer_data = await add_peer(client_name)
+    
+    # Добавляем недостающие поля
+    peer_data.update({
         "private_key": kp["private_key"],
-        "public_key": kp["public_key"],
-        "preshared_key": SERVER_PSK,
-        "allowed_ip": ip,
+        "server_public_key": SERVER_PUBLIC_KEY,
         "endpoint": SERVER_ENDPOINT,
         "dns": DNS,
         "is_amnezia": True,
-        "server_public_key": SERVER_PUBLIC_KEY,
-    }
+    })
+    
+    return peer_data
 
 
 async def delete_wg_peer(public_key: str) -> bool:

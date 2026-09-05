@@ -52,13 +52,16 @@ async def create_peer(amnezia: bool = False) -> Dict[str, Any]:
     """
     Создаёт новый WireGuard / AmneziaWG пир через panel API.
     """
+    if amnezia:
+        return await _create_amnezia_peer()
+
     import uuid
     from bot.services.panels.wireguard_ssh import add_peer
 
     try:
         client_name = f"Svaboda {uuid.uuid4().hex[:8]}"
         peer_data = await add_peer(client_name)
-        peer_data["is_amnezia"] = True
+        peer_data["is_amnezia"] = False
         peer_data["endpoint"] = "87.120.165.232:47981"
         peer_data["dns"] = "8.8.4.4, 9.9.9.9"
         peer_data["server_public_key"] = "T/OjcoQddUk3x+rilRh7/R3h90n7zc+izXX49ivwvRU="
@@ -74,33 +77,23 @@ async def _create_amnezia_peer() -> Dict[str, Any]:
     Создаёт AmneziaWG пир на сервере.
     Использует параметры реального AmneziaWG сервера.
     """
-    from bot.services.panels.wireguard_ssh import (
-        generate_keypair, add_peer, get_next_ip, SERVER_PSK,
-    )
-    from bot.utils.key_generator import generate_amnezia_wg_config_text
-
-    # Генерируем ключи клиента
-    kp = await generate_keypair()
-    ip = await get_next_ip()
-
-    # Добавляем пир на сервер
-    await add_peer(kp["public_key"], ip)
-
-    return {
-        "private_key": kp["private_key"],
-        "public_key": kp["public_key"],
-        "preshared_key": SERVER_PSK,
-        "allowed_ip": ip,
-        "endpoint": SERVER_ENDPOINT,
-        "dns": DNS,
-        "is_amnezia": True,
+    # Используем существующую функцию create_wg_peer которая правильно вызывает add_peer
+    peer_data = await create_wg_peer()
+    
+    # Добавляем AmneziaWG специфичные параметры
+    peer_data.update({
         "amnezia_jc": AMNEZIA_JC,
         "amnezia_jmin": AMNEZIA_JMIN,
         "amnezia_jmax": AMNEZIA_JMAX,
         "amnezia_s1": AMNEZIA_S1,
         "amnezia_s2": AMNEZIA_S2,
-        "server_public_key": await get_server_public_key(),
-    }
+        "amnezia_h1": AMNEZIA_H1,
+        "amnezia_h2": AMNEZIA_H2,
+        "amnezia_h3": AMNEZIA_H3,
+        "amnezia_h4": AMNEZIA_H4,
+    })
+    
+    return peer_data
 
 
 async def delete_peer(public_key: str) -> bool:

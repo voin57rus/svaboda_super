@@ -285,8 +285,12 @@ async def send_key_with_qr(
              await _send_error(messageable, "Неполные данные ключа", key_manage_markup)
              return
 
+        # Force disable subscription for trial
+        if key_data.get('type') == 'trial':
+            key_data['sub_id'] = None
+
         # === Subscription mode: выдаём subscription URL + QR этой ссылки ===
-        if key_data.get('sub_id') and is_subscription_mode():
+        if key_data.get('sub_id') and is_subscription_mode() and key_data.get('type') != 'trial':
             sub_url = await get_subscription_url_for_key(key_data)
             if not sub_url:
                 await _send_error(messageable,
@@ -409,15 +413,17 @@ async def send_wg_key(
     wg_config: str,
     key_id: int,
     key_manage_markup: InlineKeyboardMarkup = None,
+    protocol_name: str = "WireGuard",
 ):
     """
-    Отправляет пользователю WireGuard конфиг + QR-код.
+    Отправляет пользователю WireGuard / AmneziaWG конфиг + QR-код.
 
     Args:
         messageable: Message или CallbackQuery
         wg_config: Текст конфигурации WG
         key_id: ID ключа для имени файла
         key_manage_markup: Клавиатура управления
+        protocol_name: Название протокола для отображения (WireGuard, AmneziaWG)
     """
     from bot.utils.text import safe_edit_or_send
     from bot.keyboards.user import key_issued_kb
@@ -435,7 +441,7 @@ async def send_wg_key(
         await answer_func(
             photo=qr_file,
             caption=(
-                "🟢 <b>Ваш WireGuard ключ!</b>\n\n"
+                f"🟢 <b>Ваш {protocol_name} ключ!</b>\n\n"
                 "📸 Отсканируйте QR-код.\n"
                 "👇 Конфигурация ниже — файл для импорта."
             ),
@@ -446,7 +452,7 @@ async def send_wg_key(
         config_bytes = wg_config.encode('utf-8')
         config_file = BufferedInputFile(
             config_bytes,
-            filename=f"wireguard_config_{key_id}.conf"
+            filename=f"{protocol_name.lower()}_config_{key_id}.conf"
         )
 
         if hasattr(messageable, 'message'):
@@ -456,7 +462,7 @@ async def send_wg_key(
 
         await doc_func(
             document=config_file,
-            caption="📂 <b>Файл конфигурации WireGuard</b>\n\n"
+            caption=f"📂 <b>Файл конфигурации {protocol_name}</b>\n\n"
                     "💡 <b>Keenetic:</b> Настройки → Интернет → Подключения → "
                     "Добавить → VPN → WireGuard → Загрузить из файла",
             reply_markup=key_manage_markup or key_issued_kb(),
@@ -465,7 +471,7 @@ async def send_wg_key(
 
     except Exception as e:
         logger.error(f"Error sending WG key: {e}")
-        msg_text = f"❌ Ошибка отправки WireGuard ключа: {e}"
+        msg_text = f"❌ Ошибка отправки {protocol_name} ключа: {e}"
         if hasattr(messageable, 'message'):
             await safe_edit_or_send(messageable.message, msg_text, reply_markup=key_manage_markup)
         else:

@@ -1,161 +1,99 @@
 import logging
+import sys
+import os
+
+# Добавляем корневую директорию, чтобы импорты работали железно
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+
 from aiogram import Router, F
 from aiogram.types import CallbackQuery
 from aiogram.fsm.context import FSMContext
 from bot.utils.text import safe_edit_or_send
-from database.requests import get_all_tariffs, get_trial_tariff_id, is_trial_enabled, has_used_trial, get_or_create_user, mark_trial_used, create_initial_vpn_key, create_pending_order, complete_order, get_tariff_by_id
-from bot.handlers.user.payments.keys_config import start_new_key_config
-from bot.utils.page_renderer import render_page
+from database.requests import (
+    get_all_tariffs, get_trial_tariff_id, is_trial_enabled, has_used_trial, 
+    get_or_create_user, mark_trial_used, create_initial_vpn_key, 
+    create_pending_order, complete_order, get_tariff_by_id, 
+    create_wg_key, get_vpn_key_by_id
+)
+from bot.services.panels.wireguard_service import create_peer, get_server_info
+from bot.utils.key_sender import send_wg_key, send_key_with_qr, format_key_copy_value
+from bot.keyboards.user import key_issued_kb
+from bot.utils.key_generator import generate_wg_config_text, generate_amnezia_wg_config_text
 
 logger = logging.getLogger(__name__)
 
 router = Router()
 
-
 async def _get_trial_tariffs():
-    """Получает тариф для пробной подписки."""
-    tariff_id = get_trial_tariff_id()
-    if not tariff_id:
-        return []
-    tariff = get_tariff_by_id(tariff_id)
-    if not tariff or not tariff.get('is_active'):
-        return []
-    return [tariff]
-
-
-def _build_trial_tariff_text(tariffs):
-    """Строит текст со списком тарифов для пробного периода."""
-    from bot.utils.text import escape_html
-    protocol_emoji = {
-        'vless': '🔵',
-        'wireguard': '🟢',
-        'amnezia': '🟠',
-        'xray': '🟣',
-    }
-    protocol_names = {
-        'vless': 'VLESS',
-        'wireguard': 'WireGuard',
-        'amnezia': 'AmneziaWG',
-        'xray': 'Xray (Vless+WS+TLS)',
-    }
-    protocol_descriptions = {
-        'vless': 'быстрый и надёжный VPN',
-        'wireguard': 'быстрый и надёжный VPN',
-        'amnezia': 'обходит DPI и блокировки',
-        'xray': 'маскировка под HTTPS',
-    }
-    
-    lines = ['🎁 <b>Пробная подписка</b>\n\nВыберите протокол для пробного периода:']
-    for tariff in tariffs:
-        protocol = tariff.get('protocol', 'vless').lower()
-        proto_emoji = protocol_emoji.get(protocol, '🔵')
-        proto_name = protocol_names.get(protocol, protocol.upper())
-        proto_desc = protocol_descriptions.get(protocol, '')
-        lines.append(f"• {proto_emoji} <b>{escape_html(tariff['name'])}</b> — {proto_name} — {proto_desc}")
-    return '\n'.join(lines)
-
-
-def _build_trial_tariff_kb(tariffs):
-    """Строит клавиатуру выбора тарифа для пробной подписки."""
-    from aiogram.utils.keyboard import InlineKeyboardBuilder
-    from aiogram.types import InlineKeyboardButton
-    
-    builder = InlineKeyboardBuilder()
-    for tariff in tariffs:
-        protocol = tariff.get('protocol', 'vless').lower()
-        proto_emoji = {'vless': '🔵', 'wireguard': '🟢', 'amnezia': '🟠', 'xray': '🟣'}.get(protocol, '🔵')
-        proto_name = {'vless': 'VLESS', 'wireguard': 'WireGuard', 'amnezia': 'AmneziaWG', 'xray': 'Xray'}.get(protocol, protocol.upper())
-        
-        builder.row(InlineKeyboardButton(
-            text=f"{proto_emoji} {tariff['name']} — {proto_name}",
-            callback_data=f"trial_select:{tariff['id']}"
-        ))
-    builder.row(InlineKeyboardButton(text="⬅️ На главную", callback_data="start"))
-    return builder.as_markup()
-
+    tariffs = get_all_tariffs()
+    return [t for t in tariffs if t.get('is_active')]
 
 @router.callback_query(F.data == 'trial_subscription')
-async def show_trial_subscription(callback: CallbackQuery):
-    """Показывает выбор тарифов для пробной подписки."""
-    if not is_trial_enabled():
-        await callback.answer('❌ Пробная подписка недоступна', show_alert=True)
-        return
-    
-    user_id = callback.from_user.id
-    if has_used_trial(user_id):
-        await callback.answer('ℹ️ Вы уже использовали пробный период', show_alert=True)
-        return
-    
-    tariffs = await _get_trial_tariffs()
-    
-    if not tariffs:
-        await callback.answer('❌ Нет доступных тарифов для пробного периода', show_alert=True)
-        return
-    
-    text = _build_trial_tariff_text(tariffs)
-    kb = _build_trial_tariff_kb(tariffs)
-    
-    await safe_edit_or_send(callback.message, text, reply_markup=kb)
-    await callback.answer()
+async def show_trial_subscription(callback: CallbackQuery, state: FSMContext):
+    try:
+        from database.requests import get_trial_tariff_ids
+        selected_ids = get_trial_tariff_ids()
+        if not selected_ids:
+            await callback.answer('❌ Не настроено', show_alert=True)
+            return
+        await state.update_data(trial_selected=selected_ids)
+        await trial_get_keys(callback, state)
+    except Exception as e:
+        logger.error(f"Error: {e}")
+        await callback.message.answer(f"Ошибка: {e}")
 
-
-@router.callback_query(F.data.startswith('trial_select:'))
-async def select_trial_tariff(callback: CallbackQuery, state: FSMContext):
-    """Обрабатывает выбор тарифа для пробной подписки и активирует её."""
-    tariff_id = int(callback.data.split(':')[1])
+@router.callback_query(F.data == 'trial_get_keys')
+async def trial_get_keys(callback: CallbackQuery, state: FSMContext):
+    data = await state.get_data()
+    selected = data.get('trial_selected', [])
+    if not selected: return
     user_id = callback.from_user.id
-    
-    if has_used_trial(user_id):
-        await callback.answer('ℹ️ Вы уже использовали пробный период', show_alert=True)
-        return
-    
-    tariff = get_tariff_by_id(tariff_id)
-    if not tariff:
-        await callback.answer('❌ Тариф не найден', show_alert=True)
-        return
-    
-    # Создаём пользователя если нет
+    if has_used_trial(user_id): return
     (user, _) = get_or_create_user(user_id, callback.from_user.username)
     internal_user_id = user['id']
-    
-    # Помечаем пробный период как использованный
     mark_trial_used(internal_user_id)
-    logger.info(f'Пользователь {user_id} активировал пробный период (тариф ID={tariff_id})')
     
-    # Создаём VPN ключ
-    duration_days = tariff['duration_days']
-    traffic_limit_bytes = (tariff.get('traffic_limit_gb', 0) or 0) * 1024 ** 3
-    key_id = create_initial_vpn_key(internal_user_id, tariff_id, duration_days, traffic_limit=traffic_limit_bytes)
-    
-    # Создаём заказ
-    (_, order_id) = create_pending_order(
-        user_id=internal_user_id, 
-        tariff_id=tariff_id, 
-        payment_type='trial', 
-        vpn_key_id=key_id
-    )
-    complete_order(order_id)
-    
-    await state.update_data(new_key_order_id=order_id, new_key_id=key_id)
-    
+    for tariff_id in selected:
+        tariff = get_tariff_by_id(tariff_id)
+        if not tariff: continue
+        proto = str(tariff.get('protocol', 'vless')).lower()
+        if proto in ('wireguard', 'amnezia'):
+            peer_data = await create_peer(amnezia=(proto == 'amnezia'))
+            key_id = create_wg_key(
+                user_id=internal_user_id, tariff_id=tariff_id,
+                private_key=peer_data['private_key'], public_key=peer_data['public_key'],
+                preshared_key=peer_data['preshared_key'], allowed_ip=peer_data['allowed_ip'],
+                protocol=proto, duration_days=tariff.get('duration_days', 30),
+            )
+            from database.requests import update_vpn_key_sub_id
+            update_vpn_key_sub_id(key_id, None)
+            wg_key = get_vpn_key_by_id(key_id)
+            if proto == 'amnezia':
+                server_info = await get_server_info()
+                wg_config = generate_amnezia_wg_config_text(
+                    client_private_key=wg_key['private_key'], client_ip=wg_key['allowed_ip'],
+                    server_public_key=server_info['public_key'], preshared_key=wg_key['preshared_key'],
+                    endpoint=wg_key['endpoint'], dns=server_info['dns'], mtu=1420,
+                    jc=server_info['amnezia_jc'], jmin=server_info['amnezia_jmin'], jmax=server_info['amnezia_jmax'],
+                    s1=server_info['amnezia_s1'], s2=server_info['amnezia_s2'], h1=server_info['amnezia_h1'],
+                    h2=server_info['amnezia_h2'], h3=server_info['amnezia_h3'], h4=server_info['amnezia_h4']
+                )
+            else:
+                wg_config = generate_wg_config_text(
+                    wg_key['private_key'], wg_key['allowed_ip'], wg_key['public_key'],
+                    wg_key['preshared_key'], wg_key['endpoint']
+                )
+            await send_wg_key(callback.message, wg_config, key_id, key_issued_kb(), protocol_name=proto.capitalize())
+        else:
+            duration_days = tariff.get('duration_days', 1)
+            traffic_limit_bytes = (tariff.get('traffic_limit_gb', 0) or 0) * 1024 ** 3
+            key_id = create_initial_vpn_key(internal_user_id, tariff_id, duration_days, traffic_limit=traffic_limit_bytes)
+            complete_order(create_pending_order(user_id=internal_user_id, tariff_id=tariff_id, payment_type='trial', vpn_key_id=key_id)[1])
+            from database.requests import update_vpn_key_sub_id
+            update_vpn_key_sub_id(key_id, None)
+            new_key = get_vpn_key_by_id(key_id)
+            text = f'📋 Ваш VPN-ключ ({proto.upper()})\n\n{format_key_copy_value(new_key.get("client_uuid", ""))}'
+            await safe_edit_or_send(callback.message, text, reply_markup=key_issued_kb())
+            try: await send_key_with_qr(callback.message, new_key, key_issued_kb(), is_new=True)
+            except: pass
     await callback.answer()
-    try:
-        await callback.message.delete()
-    except Exception:
-        pass
-    
-    # Переходим к конфигурации нового ключа
-    await start_new_key_config(callback.message, state, order_id, key_id)
-
-
-@router.callback_query(F.data == 'trial_activate')
-async def activate_trial_subscription(callback: CallbackQuery, state: FSMContext):
-    """Старый обработчик - оставляем для совместимости, но перенаправляем на выбор."""
-    # Если тариф уже выбран в настройках - активируем его
-    tariff_id = get_trial_tariff_id()
-    if tariff_id:
-        # Эмулируем выбор тарифа
-        callback.data = f"trial_select:{tariff_id}"
-        await select_trial_tariff(callback, state)
-    else:
-        await callback.answer('❌ Тариф не настроен', show_alert=True)

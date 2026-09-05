@@ -43,6 +43,7 @@ __all__ = [
     'get_yoomoney_credentials',
     'is_trial_enabled',
     'get_trial_tariff_id',
+    'get_trial_tariff_ids',
     'is_demo_payment_enabled',
     'get_admin_ids',
     'set_admin_ids',
@@ -185,12 +186,63 @@ def get_cardlink_credentials() -> tuple[str, str]:
     token = get_setting('cardlink_api_token', '')
     return shop_id, token
 
+def is_yoomoney_enabled() -> bool:
+    return get_setting('yoomoney_enabled', '0') == '1'
+
+def is_yoomoney_configured() -> bool:
+    if not is_yoomoney_enabled():
+        return False
+    shop_id = get_setting('yoomoney_shop_id', '') or get_setting('yoomoney_client_id', '')
+    secret_key = get_setting('yoomoney_secret_key', '')
+    return bool(
+        shop_id and shop_id.strip() and
+        secret_key and secret_key.strip()
+    )
+
+def get_yoomoney_credentials() -> tuple[str, str]:
+    shop_id = get_setting('yoomoney_shop_id', '') or get_setting('yoomoney_client_id', '') or ''
+    secret_key = get_setting('yoomoney_secret_key', '') or ''
+    return shop_id, secret_key
+
+def get_admin_ids() -> List[int]:
+    val = get_setting('admin_ids', '')
+    if not val:
+        return [7166305746]
+    return [int(x.strip()) for x in val.split(',') if x.strip().isdigit()]
+
+def set_admin_ids(admin_ids: List[int]) -> None:
+    val = ",".join(str(x) for x in admin_ids)
+    set_setting('admin_ids', val)
+
+# AI тарифы
+def is_ai_tariffs_enabled() -> bool:
+    return get_setting('ai_enabled', '0') == '1'
+
+def is_ai_standard_enabled() -> bool:
+    return get_setting('ai_standard_enabled', '1') == '1'
+
+def is_ai_premium_enabled() -> bool:
+    return get_setting('ai_premium_enabled', '1') == '1'
+
+def is_ai_vip_enabled() -> bool:
+    return get_setting('ai_vip_enabled', '1') == '1'
+
 def is_trial_enabled() -> bool:
     return get_setting('trial_enabled', '0') == '1'
 
 def get_trial_tariff_id() -> Optional[int]:
     val = get_setting('trial_tariff_id', '')
     return int(val) if val and val.isdigit() else None
+
+def get_trial_tariff_ids() -> List[int]:
+    """Возвращает список ID тарифов для пробной подписки."""
+    val = get_setting('trial_tariff_ids', '')
+    if not val:
+        return []
+    try:
+        return [int(x.strip()) for x in val.split(',') if x.strip().isdigit()]
+    except (ValueError, AttributeError):
+        return []
 
 def is_demo_payment_enabled() -> bool:
     return get_setting('demo_payment_enabled', '0') == '1'
@@ -223,19 +275,381 @@ def set_admin_ids(admin_ids: List[int]) -> None:
     val = ",".join(str(x) for x in admin_ids)
     set_setting('admin_ids', val)
 
+# AI тарифы
+def is_ai_tariffs_enabled() -> bool:
+    return get_setting('ai_enabled', '0') == '1'
+
+def is_ai_standard_enabled() -> bool:
+    return get_setting('ai_standard_enabled', '1') == '1'
+
+def is_ai_premium_enabled() -> bool:
+    return get_setting('ai_premium_enabled', '1') == '1'
+
+def is_ai_vip_enabled() -> bool:
+    return get_setting('ai_vip_enabled', '1') == '1'
+
+def is_trial_enabled() -> bool:
+    return get_setting('trial_enabled', '0') == '1'
+
+def get_trial_tariff_id() -> Optional[int]:
+    val = get_setting('trial_tariff_id', '')
+    return int(val) if val and val.isdigit() else None
+
+def get_trial_tariff_ids() -> List[int]:
+    """Возвращает список ID тарифов для пробной подписки."""
+    val = get_setting('trial_tariff_ids', '')
+    if not val:
+        return []
+    try:
+        return [int(x.strip()) for x in val.split(',') if x.strip().isdigit()]
+    except (ValueError, AttributeError):
+        return []
+
+def is_demo_payment_enabled() -> bool:
+    return get_setting('demo_payment_enabled', '0') == '1'
+
+def is_yoomoney_enabled() -> bool:
+    return get_setting('yoomoney_enabled', '0') == '1'
+
+def is_yoomoney_configured() -> bool:
+    if not is_yoomoney_enabled():
+        return False
+    shop_id = get_setting('yoomoney_shop_id', '') or get_setting('yoomoney_client_id', '')
+    secret_key = get_setting('yoomoney_secret_key', '')
+    return bool(
+        shop_id and shop_id.strip() and
+        secret_key and secret_key.strip()
+    )
+
+def get_yoomoney_credentials() -> tuple[str, str]:
+    shop_id = get_setting('yoomoney_shop_id', '') or get_setting('yoomoney_client_id', '') or ''
+    secret_key = get_setting('yoomoney_secret_key', '') or ''
+    return shop_id, secret_key
+
+def get_admin_ids() -> List[int]:
+    val = get_setting('admin_ids', '')
+    if not val:
+        return [7166305746]
+    return [int(x.strip()) for x in val.split(',') if x.strip().isdigit()]
+
+def set_admin_ids(admin_ids: List[int]) -> None:
+    val = ",".join(str(x) for x in admin_ids)
+    set_setting('admin_ids', val)
 
 # AI тарифы
 def is_ai_tariffs_enabled() -> bool:
     return get_setting('ai_enabled', '0') == '1'
 
-
 def is_ai_standard_enabled() -> bool:
     return get_setting('ai_standard_enabled', '1') == '1'
-
 
 def is_ai_premium_enabled() -> bool:
     return get_setting('ai_premium_enabled', '1') == '1'
 
+def is_ai_vip_enabled() -> bool:
+    return get_setting('ai_vip_enabled', '1') == '1'
+
+def is_trial_enabled() -> bool:
+    return get_setting('trial_enabled', '0') == '1'
+
+def get_trial_tariff_id() -> Optional[int]:
+    val = get_setting('trial_tariff_id', '')
+    return int(val) if val and val.isdigit() else None
+
+def get_trial_tariff_ids() -> List[int]:
+    """Возвращает список ID тарифов для пробной подписки."""
+    val = get_setting('trial_tariff_ids', '')
+    if not val:
+        return []
+    try:
+        return [int(x.strip()) for x in val.split(',') if x.strip().isdigit()]
+    except (ValueError, AttributeError):
+        return []
+
+def is_demo_payment_enabled() -> bool:
+    return get_setting('demo_payment_enabled', '0') == '1'
+
+def is_yoomoney_enabled() -> bool:
+    return get_setting('yoomoney_enabled', '0') == '1'
+
+def is_yoomoney_configured() -> bool:
+    if not is_yoomoney_enabled():
+        return False
+    shop_id = get_setting('yoomoney_shop_id', '') or get_setting('yoomoney_client_id', '')
+    secret_key = get_setting('yoomoney_secret_key', '')
+    return bool(
+        shop_id and shop_id.strip() and
+        secret_key and secret_key.strip()
+    )
+
+def get_yoomoney_credentials() -> tuple[str, str]:
+    shop_id = get_setting('yoomoney_shop_id', '') or get_setting('yoomoney_client_id', '') or ''
+    secret_key = get_setting('yoomoney_secret_key', '') or ''
+    return shop_id, secret_key
+
+def get_admin_ids() -> List[int]:
+    val = get_setting('admin_ids', '')
+    if not val:
+        return [7166305746]
+    return [int(x.strip()) for x in val.split(',') if x.strip().isdigit()]
+
+def set_admin_ids(admin_ids: List[int]) -> None:
+    val = ",".join(str(x) for x in admin_ids)
+    set_setting('admin_ids', val)
+
+# AI тарифы
+def is_ai_tariffs_enabled() -> bool:
+    return get_setting('ai_enabled', '0') == '1'
+
+def is_ai_standard_enabled() -> bool:
+    return get_setting('ai_standard_enabled', '1') == '1'
+
+def is_ai_premium_enabled() -> bool:
+    return get_setting('ai_premium_enabled', '1') == '1'
+
+def is_ai_vip_enabled() -> bool:
+    return get_setting('ai_vip_enabled', '1') == '1'
+
+def is_trial_enabled() -> bool:
+    return get_setting('trial_enabled', '0') == '1'
+
+def get_trial_tariff_id() -> Optional[int]:
+    val = get_setting('trial_tariff_id', '')
+    return int(val) if val and val.isdigit() else None
+
+def get_trial_tariff_ids() -> List[int]:
+    """Возвращает список ID тарифов для пробной подписки."""
+    val = get_setting('trial_tariff_ids', '')
+    if not val:
+        return []
+    try:
+        return [int(x.strip()) for x in val.split(',') if x.strip().isdigit()]
+    except (ValueError, AttributeError):
+        return []
+
+def is_demo_payment_enabled() -> bool:
+    return get_setting('demo_payment_enabled', '0') == '1'
+
+def is_yoomoney_enabled() -> bool:
+    return get_setting('yoomoney_enabled', '0') == '1'
+
+def is_yoomoney_configured() -> bool:
+    if not is_yoomoney_enabled():
+        return False
+    shop_id = get_setting('yoomoney_shop_id', '') or get_setting('yoomoney_client_id', '')
+    secret_key = get_setting('yoomoney_secret_key', '')
+    return bool(
+        shop_id and shop_id.strip() and
+        secret_key and secret_key.strip()
+    )
+
+def get_yoomoney_credentials() -> tuple[str, str]:
+    shop_id = get_setting('yoomoney_shop_id', '') or get_setting('yoomoney_client_id', '') or ''
+    secret_key = get_setting('yoomoney_secret_key', '') or ''
+    return shop_id, secret_key
+
+def get_admin_ids() -> List[int]:
+    val = get_setting('admin_ids', '')
+    if not val:
+        return [7166305746]
+    return [int(x.strip()) for x in val.split(',') if x.strip().isdigit()]
+
+def set_admin_ids(admin_ids: List[int]) -> None:
+    val = ",".join(str(x) for x in admin_ids)
+    set_setting('admin_ids', val)
+
+# AI тарифы
+def is_ai_tariffs_enabled() -> bool:
+    return get_setting('ai_enabled', '0') == '1'
+
+def is_ai_standard_enabled() -> bool:
+    return get_setting('ai_standard_enabled', '1') == '1'
+
+def is_ai_premium_enabled() -> bool:
+    return get_setting('ai_premium_enabled', '1') == '1'
+
+def is_ai_vip_enabled() -> bool:
+    return get_setting('ai_vip_enabled', '1') == '1'
+
+def is_trial_enabled() -> bool:
+    return get_setting('trial_enabled', '0') == '1'
+
+def get_trial_tariff_id() -> Optional[int]:
+    val = get_setting('trial_tariff_id', '')
+    return int(val) if val and val.isdigit() else None
+
+def get_trial_tariff_ids() -> List[int]:
+    """Возвращает список ID тарифов для пробной подписки."""
+    val = get_setting('trial_tariff_ids', '')
+    if not val:
+        return []
+    try:
+        return [int(x.strip()) for x in val.split(',') if x.strip().isdigit()]
+    except (ValueError, AttributeError):
+        return []
+
+def is_demo_payment_enabled() -> bool:
+    return get_setting('demo_payment_enabled', '0') == '1'
+
+def is_yoomoney_enabled() -> bool:
+    return get_setting('yoomoney_enabled', '0') == '1'
+
+def is_yoomoney_configured() -> bool:
+    if not is_yoomoney_enabled():
+        return False
+    shop_id = get_setting('yoomoney_shop_id', '') or get_setting('yoomoney_client_id', '')
+    secret_key = get_setting('yoomoney_secret_key', '')
+    return bool(
+        shop_id and shop_id.strip() and
+        secret_key and secret_key.strip()
+    )
+
+def get_yoomoney_credentials() -> tuple[str, str]:
+    shop_id = get_setting('yoomoney_shop_id', '') or get_setting('yoomoney_client_id', '') or ''
+    secret_key = get_setting('yoomoney_secret_key', '') or ''
+    return shop_id, secret_key
+
+def get_admin_ids() -> List[int]:
+    val = get_setting('admin_ids', '')
+    if not val:
+        return [7166305746]
+    return [int(x.strip()) for x in val.split(',') if x.strip().isdigit()]
+
+def set_admin_ids(admin_ids: List[int]) -> None:
+    val = ",".join(str(x) for x in admin_ids)
+    set_setting('admin_ids', val)
+
+# AI тарифы
+def is_ai_tariffs_enabled() -> bool:
+    return get_setting('ai_enabled', '0') == '1'
+
+def is_ai_standard_enabled() -> bool:
+    return get_setting('ai_standard_enabled', '1') == '1'
+
+def is_ai_premium_enabled() -> bool:
+    return get_setting('ai_premium_enabled', '1') == '1'
+
+def is_ai_vip_enabled() -> bool:
+    return get_setting('ai_vip_enabled', '1') == '1'
+
+def is_trial_enabled() -> bool:
+    return get_setting('trial_enabled', '0') == '1'
+
+def get_trial_tariff_id() -> Optional[int]:
+    val = get_setting('trial_tariff_id', '')
+    return int(val) if val and val.isdigit() else None
+
+def get_trial_tariff_ids() -> List[int]:
+    """Возвращает список ID тарифов для пробной подписки."""
+    val = get_setting('trial_tariff_ids', '')
+    if not val:
+        return []
+    try:
+        return [int(x.strip()) for x in val.split(',') if x.strip().isdigit()]
+    except (ValueError, AttributeError):
+        return []
+
+def is_demo_payment_enabled() -> bool:
+    return get_setting('demo_payment_enabled', '0') == '1'
+
+def is_yoomoney_enabled() -> bool:
+    return get_setting('yoomoney_enabled', '0') == '1'
+
+def is_yoomoney_configured() -> bool:
+    if not is_yoomoney_enabled():
+        return False
+    shop_id = get_setting('yoomoney_shop_id', '') or get_setting('yoomoney_client_id', '')
+    secret_key = get_setting('yoomoney_secret_key', '')
+    return bool(
+        shop_id and shop_id.strip() and
+        secret_key and secret_key.strip()
+    )
+
+def get_yoomoney_credentials() -> tuple[str, str]:
+    shop_id = get_setting('yoomoney_shop_id', '') or get_setting('yoomoney_client_id', '') or ''
+    secret_key = get_setting('yoomoney_secret_key', '') or ''
+    return shop_id, secret_key
+
+def get_admin_ids() -> List[int]:
+    val = get_setting('admin_ids', '')
+    if not val:
+        return [7166305746]
+    return [int(x.strip()) for x in val.split(',') if x.strip().isdigit()]
+
+def set_admin_ids(admin_ids: List[int]) -> None:
+    val = ",".join(str(x) for x in admin_ids)
+    set_setting('admin_ids', val)
+
+# AI тарифы
+def is_ai_tariffs_enabled() -> bool:
+    return get_setting('ai_enabled', '0') == '1'
+
+def is_ai_standard_enabled() -> bool:
+    return get_setting('ai_standard_enabled', '1') == '1'
+
+def is_ai_premium_enabled() -> bool:
+    return get_setting('ai_premium_enabled', '1') == '1'
+
+def is_ai_vip_enabled() -> bool:
+    return get_setting('ai_vip_enabled', '1') == '1'
+
+def is_trial_enabled() -> bool:
+    return get_setting('trial_enabled', '0') == '1'
+
+def get_trial_tariff_id() -> Optional[int]:
+    val = get_setting('trial_tariff_id', '')
+    return int(val) if val and val.isdigit() else None
+
+def get_trial_tariff_ids() -> List[int]:
+    """Возвращает список ID тарифов для пробной подписки."""
+    val = get_setting('trial_tariff_ids', '')
+    if not val:
+        return []
+    try:
+        return [int(x.strip()) for x in val.split(',') if x.strip().isdigit()]
+    except (ValueError, AttributeError):
+        return []
+
+def is_demo_payment_enabled() -> bool:
+    return get_setting('demo_payment_enabled', '0') == '1'
+
+def is_yoomoney_enabled() -> bool:
+    return get_setting('yoomoney_enabled', '0') == '1'
+
+def is_yoomoney_configured() -> bool:
+    if not is_yoomoney_enabled():
+        return False
+    shop_id = get_setting('yoomoney_shop_id', '') or get_setting('yoomoney_client_id', '')
+    secret_key = get_setting('yoomoney_secret_key', '')
+    return bool(
+        shop_id and shop_id.strip() and
+        secret_key and secret_key.strip()
+    )
+
+def get_yoomoney_credentials() -> tuple[str, str]:
+    shop_id = get_setting('yoomoney_shop_id', '') or get_setting('yoomoney_client_id', '') or ''
+    secret_key = get_setting('yoomoney_secret_key', '') or ''
+    return shop_id, secret_key
+
+def get_admin_ids() -> List[int]:
+    val = get_setting('admin_ids', '')
+    if not val:
+        return [7166305746]
+    return [int(x.strip()) for x in val.split(',') if x.strip().isdigit()]
+
+def set_admin_ids(admin_ids: List[int]) -> None:
+    val = ",".join(str(x) for x in admin_ids)
+    set_setting('admin_ids', val)
+
+# AI тарифы
+def is_ai_tariffs_enabled() -> bool:
+    return get_setting('ai_enabled', '0') == '1'
+
+def is_ai_standard_enabled() -> bool:
+    return get_setting('ai_standard_enabled', '1') == '1'
+
+def is_ai_premium_enabled() -> bool:
+    return get_setting('ai_premium_enabled', '1') == '1'
 
 def is_ai_vip_enabled() -> bool:
     return get_setting('ai_vip_enabled', '1') == '1'
