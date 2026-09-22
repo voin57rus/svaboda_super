@@ -10,3 +10,5 @@ database/vpn_bot.db
 bot_run.log
 *.log
 *.save
+database/*.db
+database/__pycache__/

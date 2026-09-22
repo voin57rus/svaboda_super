@@ -1419,6 +1419,23 @@ async def admin_ai_access_menu(callback: CallbackQuery, state: FSMContext):
 # НАСТРОЙКА AI-ТАРИФОВ
 # ============================================================================
 
+@router.callback_query(F.data.startswith("admin_user_delete_full:"))
+async def admin_user_delete_full_menu(callback: CallbackQuery, state: FSMContext):
+    if not is_admin(callback.from_user.id):
+        await callback.answer('⛔ Доступ запрещён', show_alert=True)
+        return
+    telegram_id = int(callback.data.split(':')[1])
+    import sqlite3
+    conn = sqlite3.connect('database/vpn_bot.db')
+    c = conn.cursor()
+    c.execute("DELETE FROM ai_keys WHERE activated_by=? OR key IN (SELECT ai_key FROM users WHERE telegram_id=?)", (telegram_id, telegram_id))
+    c.execute("DELETE FROM vpn_keys WHERE user_id IN (SELECT id FROM users WHERE telegram_id=?)", (telegram_id,))
+    c.execute("DELETE FROM users WHERE telegram_id=?", (telegram_id,))
+    conn.commit()
+    conn.close()
+    await callback.answer('✅ Пользователь полностью удалён', show_alert=True)
+    await admin_ai_access_menu(callback, state)
+
 @router.callback_query(F.data == "admin_ai_tariffs_settings")
 async def admin_ai_tariffs_settings(callback: CallbackQuery, state: FSMContext):
     """Меню управления AI-тарифами (вкл/выкл по отдельности)."""

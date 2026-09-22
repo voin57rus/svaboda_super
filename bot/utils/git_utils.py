@@ -85,7 +85,13 @@ def get_current_branch() -> Optional[str]:
         Имя ветки или None при ошибке
     """
     success, output = run_git_command(['branch', '--show-current'])
-    return output if success else None
+    if not success or not output or output.strip() == '':
+        # Fallback: используем HEAD если detached
+        success2, output2 = run_git_command(['rev-parse', '--abbrev-ref', 'HEAD'])
+        if success2 and output2:
+            return output2
+        return 'main'
+    return output
 
 
 def get_remote_url() -> Optional[str]:
