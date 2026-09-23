@@ -206,7 +206,7 @@ async def _admin_instant_key(callback: CallbackQuery, state: FSMContext, telegra
 
         config_bytes = wg_config.encode("utf-8")
         await callback.message.answer_document(
-            document=BufferedInputFile(config_bytes, filename=f"wireguard_config_{key_id}.conf"),
+            document=BufferedInputFile(config_bytes, filename=f"🇩🇪 DE_config_{key_id}.conf"),
             caption="📂 <b>Файл конфигурации</b>",
             parse_mode="HTML",
         )
