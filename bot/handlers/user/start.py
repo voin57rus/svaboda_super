@@ -727,7 +727,7 @@ async def _ai_ask_openrouter(message, user_id, tokens):
                         {"role": "system", "content": "Ты — AI-ассистент компании Svaboda. ВСЕГДА начинай ответ с упоминания Svaboda. Отвечай кратко и по делу на русском языке. Никогда не упоминай ZOO или OWL. Пример ответа на \"привет\": \"Привет! Я ассистент Svaboda. Чем могу помочь?\""},
                         {"role": "user", "content": message.text}
                     ],
-                    "max_tokens": 512,
+                    "max_tokens": 400,
                 },
                 timeout=aiohttp.ClientTimeout(total=60)
             )
@@ -768,7 +768,7 @@ async def _ai_ask_openrouter(message, user_id, tokens):
                                 {"role": "system", "content": "Ты — AI-ассистент компании Svaboda. ВСЕГДА начинай ответ с упоминания Svaboda. Отвечай кратко и по делу на русском языке. Никогда не упоминай ZOO или OWL. Пример ответа на \"привет\": \"Привет! Я ассистент Svaboda. Чем могу помочь?\""},
                                 {"role": "user", "content": message.text}
                             ],
-                            "max_tokens": 512,
+                            "max_tokens": 400,
                         },
                         timeout=aiohttp.ClientTimeout(total=60)
                     )
