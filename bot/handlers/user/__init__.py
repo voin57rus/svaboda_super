@@ -5,6 +5,7 @@ from .keys import router as keys_router
 from .trial import router as trial_router
 from .tariffs import router as tariffs_router
 from .protocol_select import router as protocol_select_router
+from .ai_module import router as ai_module_router
 
 # These are packages/modules that were explicitly standalone
 from .referral import router as referral_router
@@ -18,6 +19,7 @@ router.callback_query.outer_middleware(ResetAdminPageContextMiddleware())
 router.callback_query.outer_middleware(AdminPaymentBlockMiddleware())
 
 # Порядок важен: специфичные роутеры с deep_link должны идти перед общим start_router
+router.include_router(ai_module_router)
 router.include_router(protocol_select_router)
 router.include_router(payments_router)
 router.include_router(referral_router)
